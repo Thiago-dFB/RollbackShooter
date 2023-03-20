@@ -54,10 +54,10 @@ enum MoveInput
 
 struct PlayerInput
 {
-	AttackInput atk;
-	MoveInput mov;
+	AttackInput atk = None;
+	MoveInput mov = Neutral;
 	//horizontal mouse movement (already in radians)
-	num8_24 mouse;
+	num8_24 mouse{ 0 };
 };
 
 struct InputData
@@ -68,30 +68,30 @@ struct InputData
 
 struct Player
 {
-	playerid id;
+	playerid id = 0;
 	std::stack<PState> pushdown;
 	//xform
-	Vec2 pos;
-	Vec2 vel;
-	Vec2 dir;
+	Vec2 pos = v2::zero();
+	Vec2 vel = v2::zero();
+	Vec2 dir = v2::zero();
 	//shots
-	int ammo;
-	int chargeCount;
+	int ammo = 0;
+	int chargeCount = 0;
 	//dash
-	int stamina;
-	Vec2 perfectPos;
-	Vec2 dashDir;
-	int dashCount;
+	int stamina = 0;
+	Vec2 perfectPos = v2::zero();
+	Vec2 dashDir = v2::zero();
+	int dashCount = 0;
 	//other countdowns
-	int hitstopCount;
-	int stunCount;
+	int hitstopCount = 0;
+	int stunCount = 0;
 };
 
 struct Projectile
 {
-	Vec2 pos;
-	Vec2 vel;
-	playerid owner;
+	Vec2 pos = v2::zero();
+	Vec2 vel = v2::zero();
+	playerid owner = 0;
 };
 
 struct Config
@@ -122,17 +122,17 @@ struct Config
 
 struct GameState
 {
-	long frame;
-	int roundCountdown;
-	RoundPhase phase;
+	long frame = 0;
+	int roundCountdown = 0;
+	RoundPhase phase = Countdown;
 	
 	Player p1;
-	std::int8_t health1;
-	std::int8_t rounds1;
+	std::int8_t health1 = 0;
+	std::int8_t rounds1 = 0;
 
 	Player p2;
-	std::int8_t health2;
-	std::int8_t rounds2;
+	std::int8_t health2 = 0;
+	std::int8_t rounds2 = 0;
 	
 	std::vector<Projectile> projs;
 };
