@@ -53,9 +53,19 @@ namespace v2
 		return (a.x * b.x) + (a.y * b.y);
 	}
 
-	inline Vec2 scalar(Vec2 v, num8_24 n)
+	inline bool equal(Vec2 a, Vec2 b)
+	{
+		return (a.x == b.x) && (a.y == b.y);
+	}
+
+	inline Vec2 scalarMult(Vec2 v, num8_24 n)
 	{
 		return Vec2{ v.x * n, v.y * n };
+	}
+
+	inline Vec2 scalarDiv(Vec2 v, num8_24 n)
+	{
+		return Vec2{ v.x / n, v.y / n };
 	}
 
 	inline num8_24 length(Vec2 v)
@@ -63,15 +73,40 @@ namespace v2
 		return fpm::sqrt((v.x * v.x) + (v.y * v.y));
 	}
 
+	inline Vec2 normalize(Vec2 v)
+	{
+		return equal(v, zero()) ? v : scalarDiv(v, length(v));
+	}
+
+	//if you want to multiply the normal by a value
+	inline Vec2 normalizeMult(Vec2 v, num8_24 n)
+	{
+		return equal(v, zero()) ? v : scalarMult(v, n / length(v));
+	}
+
 	//angle in radians, please
 	//positive rotates counter-clockwise
-	Vec2 rotate(Vec2 vec, num8_24 angle)
+	Vec2 rotate(Vec2 v, num8_24 angle)
 	{
 		num8_24 cos = fpm::cos(angle);
 		num8_24 sin = fpm::sin(angle);
-		num8_24 x = (vec.x * cos) - (vec.y * sin);
-		num8_24 y = (vec.x * sin) + (vec.y * cos);
+		num8_24 x = (v.x * cos) - (v.y * sin);
+		num8_24 y = (v.x * sin) + (v.y * cos);
 		return Vec2{ x, y };
+	}
+	
+	//projection of a on b
+	Vec2 projection(Vec2 a, Vec2 b)
+	{
+		Vec2 b_normal = normalize(b);
+		num8_24 relative = dot(a, b_normal);
+		return scalarMult(b_normal, relative);
+	}
+
+	//rejection of a from b
+	inline Vec2 rejection(Vec2 a, Vec2 b)
+	{
+		return sub(a, projection(a,b));
 	}
 
 	// distance between closest point in a ray and the center of something
@@ -85,7 +120,7 @@ namespace v2
 			// dunno how to define the highest value this type holds so this goes lmao
 			return num8_24{ 127 };
 		}
-		Vec2 projection = scalar(vector, relative);
+		Vec2 projection = scalarMult(vector, relative);
 		Vec2 closest = sub(o2c, projection);
 		return length(closest);
 	}

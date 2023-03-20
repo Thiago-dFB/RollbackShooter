@@ -96,12 +96,11 @@ struct Projectile
 
 struct Config
 {
-	int ammoValue;
-	int ammoAmount;
 	int ammoMax;
-	int staminaValue;
-	int staminaAmount;
+	int shotCost;
+	int altShotCost;
 	int staminaMax;
+	int dashCost;
 	num8_24 playerRadius;
 	num8_24 projRadius;
 	num8_24 comboRadius;
@@ -110,6 +109,8 @@ struct Config
 	num8_24 projSpeed;
 	num8_24 projCounterMultiply;
 	num8_24 playerWalkSpeed;
+	num8_24 playerWalkAccel;
+	num8_24 playerWalkFric;
 	num8_24 playerDashSpeed;
 	int dashDuration;
 	int dashPerfect;
@@ -141,11 +142,11 @@ Player respawn(Player player, Config cfg)
 	switch (player.id)
 	{
 	case 1:
-		player.pos = v2::scalar(v2::left(), cfg.spawnRadius);
+		player.pos = v2::scalarMult(v2::left(), cfg.spawnRadius);
 		player.dir = v2::right();
 		break;
 	case 2:
-		player.pos = v2::scalar(v2::right(), cfg.spawnRadius);
+		player.pos = v2::scalarMult(v2::right(), cfg.spawnRadius);
 		player.dir = v2::left();
 		break;
 	}
@@ -186,6 +187,87 @@ GameState initialState(Config cfg)
 	gs.rounds2 = 0;
 
 	return gs;
+}
+
+Player simPlayer(Player player, Config cfg, PlayerInput input)
+{
+	if ((input.atk == AttackInput::Shot && player.ammo < cfg.shotCost) ||
+		(input.atk == AttackInput::AltShot && player.ammo < cfg.altShotCost) ||
+		(input.atk == AttackInput::Dash && player.stamina < cfg.dashCost) )
+	{
+		input.atk = AttackInput::None;
+	}
+
+	switch (player.pushdown.top())
+	{
+	case PState::Standby:
+		input.atk = AttackInput::None;
+		input.mov = MoveInput::Neutral;
+		input.mouse = num8_24{ 0 };
+		//no break, fall through to default
+	case PState::Default:
+		//MOUSE MOVEMENT
+		player.dir = v2::rotate(player.dir, input.mouse);
+
+		//NORMAL WALKING MOVEMENT - ACCELERATION
+		num8_24 speed = v2::length(player.vel);
+		Vec2 impulse = v2::scalarMult(player.dir, cfg.playerWalkAccel);
+		num8_24 quarter_pi = speed.pi() / 4;
+		switch (input.mov)
+		{
+		case MoveInput::Neutral:
+			if (speed < cfg.playerWalkFric)
+			{
+				player.vel = v2::zero();
+			}
+			else
+			{
+				//every opposite vector gets normalized to friction
+				impulse = v2::scalarMult(player.vel, num8_24{-1});
+			}
+			break;
+		case MoveInput::ForLeft:
+			impulse = v2::rotate(impulse, quarter_pi);
+			break;
+		case MoveInput::Left:
+			impulse = v2::rotate(impulse, speed.half_pi());
+			break;
+		case MoveInput::BackLeft:
+			impulse = v2::rotate(impulse, speed.pi() - quarter_pi);
+			break;
+		case MoveInput::Back:
+			impulse = v2::scalarMult(impulse, num8_24{ -1 });
+			break;
+		case MoveInput::BackRight:
+			impulse = v2::rotate(impulse, speed.pi() + quarter_pi);
+			break;
+		case MoveInput::Right:
+			impulse = v2::rotate(impulse, -speed.half_pi());
+			break;
+		case MoveInput::ForRight:
+			impulse = v2::rotate(impulse, -quarter_pi);
+			break;
+		}
+		//if player is backpedaling, turn directly opposite force into friction
+		if (v2::dot(player.vel, impulse) < num8_24{ 0 })
+		{
+			impulse = v2::rejection(impulse, player.vel);
+			impulse = v2::add(impulse, v2::normalizeMult(player.vel, -cfg.playerWalkFric));
+		}
+		player.vel = v2::add(player.vel, impulse);
+		if (v2::length(player.vel) > cfg.playerWalkSpeed)
+		{
+			player.vel = v2::normalizeMult(player.vel, cfg.playerWalkSpeed);
+		}
+		
+		//NORMAL WALKING MOVEMENT - DISPLACEMENT AND CORRECTION
+		player.pos = v2::add(player.pos, player.vel);
+		if (v2::length(player.pos) > cfg.arenaRadius)
+		{
+			player.pos = v2::normalizeMult(player.pos, cfg.arenaRadius);
+			player.vel = v2::rejection(player.vel, player.pos);
+		}
+	}
 }
 
 GameState simulate(GameState state, Config cfg, InputData input)
@@ -230,37 +312,6 @@ GameState simulate(GameState state, Config cfg, InputData input)
 		break;
 	}
 	return state;
-}
-
-// TODO try if I can just assign shit instead of doing this silliness
-void copyPlayer(Player* to, Player* from)
-{
-	to->id = from->id;
-	to->pushdown = from->pushdown;
-	to->pos = from->pos;
-	to->vel = from->vel;
-	to->dir = from->dir;
-	to->ammo = from->ammo;
-	to->chargeCount = from->chargeCount;
-	to->stamina = from->stamina;
-	to->perfectPos = from->perfectPos;
-	to->dashDir = from->dashDir;
-	to->dashCount = from->dashCount;
-	to->hitstopCount = from->hitstopCount;
-	to->stunCount = from->stunCount;
-}
-
-void copyGameState(GameState* to, GameState* from)
-{
-	to->frame = from->frame;
-	copyPlayer(&(to->p1), &(from->p1));
-	copyPlayer(&(to->p2), &(from->p2));
-	to->projs = from->projs;
-	to->health1 = from->health1;
-	to->health2 = from->health2;
-	to->rounds1 = from->rounds1;
-	to->rounds2 = from->rounds2;
-	to->roundCountdown = from->roundCountdown;
 }
 
 int main(int argc, char* argv[])
