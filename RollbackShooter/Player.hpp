@@ -58,7 +58,7 @@ struct Player
 	//dash
 	int16 stamina = 0;
 	Vec2 perfectPos = v2::zero();
-	Vec2 dashDir = v2::zero();
+	Vec2 dashVel = v2::zero();
 	int16 dashCount = 0;
 	//other countdowns
 	int16 hitstopCount = 0;
@@ -83,7 +83,7 @@ Player respawn(Player player, Config cfg)
 	player.chargeCount = 0;
 	player.stamina = cfg.staminaMax;
 	player.perfectPos = v2::zero();
-	player.dashDir = player.dir;
+	player.dashVel = v2::zero();
 	player.dashCount = 0;
 	player.hitstopCount = 0;
 	player.stunCount = 0;
@@ -97,7 +97,7 @@ Player respawn(Player player, Config cfg)
 	return player;
 }
 
-Player simPlayer(Player player, Config cfg, PlayerInput input)
+Player movePlayer(Player player, Config cfg, PlayerInput input)
 {
 	if ((input.atk == AttackInput::Shot && player.ammo < cfg.shotCost) ||
 		(input.atk == AttackInput::AltShot && player.ammo < cfg.altShotCost) ||
@@ -175,6 +175,20 @@ Player simPlayer(Player player, Config cfg, PlayerInput input)
 			player.pos = v2::normalizeMult(player.pos, cfg.arenaRadius);
 			player.vel = v2::rejection(player.vel, player.pos);
 		}
+		break;
+	case PState::Dashing:
+		if (player.dashCount < cfg.dashPhase)
+		{
+			num_det alpha = num_det{ player.dashCount } / num_det{ cfg.dashPhase };
+			Vec2 displace = v2::lerp(player.vel, player.dashVel, alpha);
+			player.pos = v2::add(player.pos, displace);
+		}
+		else
+		{
+			player.pos = v2::add(player.pos, player.dashVel);
+			player.vel = player.dashVel;
+		}
+		break;
 	}
 
 	return player;

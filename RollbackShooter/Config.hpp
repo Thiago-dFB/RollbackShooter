@@ -22,6 +22,7 @@ struct Config
 	num_det playerWalkFric;
 	num_det playerDashSpeed;
 	int16 dashDuration;
+	int16 dashPhase;
 	int16 dashPerfect;
 	int16 chargeDuration;
 	int16 hitstopDuration;

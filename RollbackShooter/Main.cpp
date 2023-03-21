@@ -111,7 +111,8 @@ GameState simulate(GameState state, Config cfg, InputData input)
 			break;
 		}
 	case RoundPhase::Play:
-
+		movePlayer(state.p1, cfg, input.p1Input);
+		movePlayer(state.p2, cfg, input.p2Input);
 		break;
 	}
 	return state;

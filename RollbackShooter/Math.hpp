@@ -87,6 +87,11 @@ namespace v2
 		return equal(v, zero()) ? v : scalarMult(v, n / length(v));
 	}
 
+	inline Vec2 lerp(Vec2 zero, Vec2 one, num_det alpha)
+	{
+		return add(zero, scalarMult(sub(one, zero), alpha));
+	}
+
 	//angle in radians, please
 	//positive rotates counter-clockwise
 	Vec2 rotate(Vec2 v, num_det angle)
