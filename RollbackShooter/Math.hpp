@@ -1,9 +1,10 @@
-//fpm
+#ifndef RBST_MATH_HPP
+#define RBST_MATH_HPP
+
 #include <fpm/fixed.hpp>
 #include <fpm/math.hpp>
 
 using num8_24 = fpm::fixed_8_24;
-
 
 struct Vec2
 {
@@ -125,3 +126,5 @@ namespace v2
 		return length(closest);
 	}
 }
+
+#endif
