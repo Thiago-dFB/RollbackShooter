@@ -171,6 +171,8 @@ GameState simulate(GameState state, Config cfg, InputData input)
 						it->owner = 2;
 						num_det newSpeed = v2::length(it->vel) * cfg.projCounterMultiply;
 						it->vel = v2::normalizeMult(v2::sub(state.p1.pos, it->pos), newSpeed);
+						state.p2.pushdown.push(PState::Hitstop);
+						state.p2.hitstopCount = cfg.weakHitstop;
 					}
 					else if (v2::length(v2::sub(it->pos, state.p2.pos)) < (cfg.playerRadius + cfg.projRadius))
 					{
@@ -189,6 +191,8 @@ GameState simulate(GameState state, Config cfg, InputData input)
 						it->owner = 1;
 						num_det newSpeed = v2::length(it->vel) * cfg.projCounterMultiply;
 						it->vel = v2::normalizeMult(v2::sub(state.p2.pos, it->pos), newSpeed);
+						state.p1.pushdown.push(PState::Hitstop);
+						state.p1.hitstopCount = cfg.weakHitstop;
 					}
 					else if (v2::length(v2::sub(it->pos, state.p1.pos)) < (cfg.playerRadius + cfg.projRadius))
 					{
