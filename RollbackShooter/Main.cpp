@@ -39,20 +39,19 @@ struct Projectile
 struct GameState
 {
 	long frame = 0;
-	std::int16_t roundCountdown = 0;
+	int16 roundCountdown = 0;
 	RoundPhase phase = Countdown;
 	
 	Player p1;
-	std::int8_t health1 = 0;
-	std::int8_t rounds1 = 0;
+	int8 health1 = 0;
+	int8 rounds1 = 0;
 
 	Player p2;
-	std::int8_t health2 = 0;
-	std::int8_t rounds2 = 0;
+	int8 health2 = 0;
+	int8 rounds2 = 0;
 	
 	std::vector<Projectile> projs;
 };
-
 
 GameState initialState(Config cfg)
 {
@@ -73,7 +72,6 @@ GameState initialState(Config cfg)
 
 	return gs;
 }
-
 
 GameState simulate(GameState state, Config cfg, InputData input)
 {

@@ -53,16 +53,16 @@ struct Player
 	Vec2 vel = v2::zero();
 	Vec2 dir = v2::zero();
 	//shots
-	std::int16_t ammo = 0;
-	std::int16_t chargeCount = 0;
+	int16 ammo = 0;
+	int16 chargeCount = 0;
 	//dash
-	std::int16_t stamina = 0;
+	int16 stamina = 0;
 	Vec2 perfectPos = v2::zero();
 	Vec2 dashDir = v2::zero();
-	std::int16_t dashCount = 0;
+	int16 dashCount = 0;
 	//other countdowns
-	std::int16_t hitstopCount = 0;
-	std::int16_t stunCount = 0;
+	int16 hitstopCount = 0;
+	int16 stunCount = 0;
 };
 
 Player respawn(Player player, Config cfg)

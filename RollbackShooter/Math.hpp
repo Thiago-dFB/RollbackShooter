@@ -5,6 +5,8 @@
 #include <fpm/math.hpp>
 
 using num_det = fpm::fixed_8_24;
+using int8 = std::int8_t;
+using int16 = std::int16_t;
 
 struct Vec2
 {
