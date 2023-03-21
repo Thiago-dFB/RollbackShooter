@@ -41,7 +41,7 @@ struct PlayerInput
 	AttackInput atk = None;
 	MoveInput mov = Neutral;
 	//horizontal mouse movement (already in radians)
-	num8_24 mouse{ 0 };
+	num_det mouse{ 0 };
 };
 
 struct Player
@@ -111,16 +111,16 @@ Player simPlayer(Player player, Config cfg, PlayerInput input)
 	case PState::Standby:
 		input.atk = AttackInput::None;
 		input.mov = MoveInput::Neutral;
-		input.mouse = num8_24{ 0 };
+		input.mouse = num_det{ 0 };
 		//no break, fall through to default
 	case PState::Default:
 		//MOUSE MOVEMENT
 		player.dir = v2::rotate(player.dir, input.mouse);
 
 		//NORMAL WALKING MOVEMENT - ACCELERATION
-		num8_24 speed = v2::length(player.vel);
+		num_det speed = v2::length(player.vel);
 		Vec2 impulse = v2::scalarMult(player.dir, cfg.playerWalkAccel);
-		num8_24 quarter_pi = speed.pi() / 4;
+		num_det quarter_pi = speed.pi() / 4;
 		switch (input.mov)
 		{
 		case MoveInput::Neutral:
@@ -131,7 +131,7 @@ Player simPlayer(Player player, Config cfg, PlayerInput input)
 			else
 			{
 				//every opposite vector gets normalized to friction
-				impulse = v2::scalarMult(player.vel, num8_24{ -1 });
+				impulse = v2::scalarMult(player.vel, num_det{ -1 });
 			}
 			break;
 		case MoveInput::ForLeft:
@@ -144,7 +144,7 @@ Player simPlayer(Player player, Config cfg, PlayerInput input)
 			impulse = v2::rotate(impulse, speed.pi() - quarter_pi);
 			break;
 		case MoveInput::Back:
-			impulse = v2::scalarMult(impulse, num8_24{ -1 });
+			impulse = v2::scalarMult(impulse, num_det{ -1 });
 			break;
 		case MoveInput::BackRight:
 			impulse = v2::rotate(impulse, speed.pi() + quarter_pi);
@@ -157,7 +157,7 @@ Player simPlayer(Player player, Config cfg, PlayerInput input)
 			break;
 		}
 		//if player is backpedaling, turn directly opposite force into friction
-		if (v2::dot(player.vel, impulse) < num8_24{ 0 })
+		if (v2::dot(player.vel, impulse) < num_det{ 0 })
 		{
 			impulse = v2::rejection(impulse, player.vel);
 			impulse = v2::add(impulse, v2::normalizeMult(player.vel, -cfg.playerWalkFric));

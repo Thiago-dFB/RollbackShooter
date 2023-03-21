@@ -4,39 +4,39 @@
 #include <fpm/fixed.hpp>
 #include <fpm/math.hpp>
 
-using num8_24 = fpm::fixed_8_24;
+using num_det = fpm::fixed_8_24;
 
 struct Vec2
 {
-	num8_24 x;
-	num8_24 y;
+	num_det x;
+	num_det y;
 };
 
 namespace v2
 {
 	inline Vec2 zero()
 	{
-		return Vec2{ num8_24{ 0 }, num8_24{ 0 } };
+		return Vec2{ num_det{ 0 }, num_det{ 0 } };
 	}
 
 	inline Vec2 up()
 	{
-		return Vec2{ num8_24{ 0 }, num8_24{ 1 } };
+		return Vec2{ num_det{ 0 }, num_det{ 1 } };
 	}
 
 	inline Vec2 down()
 	{
-		return Vec2{ num8_24{ 0 }, num8_24{ -1 } };
+		return Vec2{ num_det{ 0 }, num_det{ -1 } };
 	}
 
 	inline Vec2 left()
 	{
-		return Vec2{ num8_24{ -1 }, num8_24{ 0 } };
+		return Vec2{ num_det{ -1 }, num_det{ 0 } };
 	}
 
 	inline Vec2 right()
 	{
-		return Vec2{ num8_24{ 1 }, num8_24{ 0 } };
+		return Vec2{ num_det{ 1 }, num_det{ 0 } };
 	}
 
 	inline Vec2 add(Vec2 a, Vec2 b)
@@ -49,7 +49,7 @@ namespace v2
 		return Vec2{ a.x - b.x, a.y - b.y };
 	}
 
-	inline num8_24 dot(Vec2 a, Vec2 b)
+	inline num_det dot(Vec2 a, Vec2 b)
 	{
 		return (a.x * b.x) + (a.y * b.y);
 	}
@@ -59,17 +59,17 @@ namespace v2
 		return (a.x == b.x) && (a.y == b.y);
 	}
 
-	inline Vec2 scalarMult(Vec2 v, num8_24 n)
+	inline Vec2 scalarMult(Vec2 v, num_det n)
 	{
 		return Vec2{ v.x * n, v.y * n };
 	}
 
-	inline Vec2 scalarDiv(Vec2 v, num8_24 n)
+	inline Vec2 scalarDiv(Vec2 v, num_det n)
 	{
 		return Vec2{ v.x / n, v.y / n };
 	}
 
-	inline num8_24 length(Vec2 v)
+	inline num_det length(Vec2 v)
 	{
 		return fpm::sqrt((v.x * v.x) + (v.y * v.y));
 	}
@@ -80,19 +80,19 @@ namespace v2
 	}
 
 	//if you want to multiply the normal by a value
-	inline Vec2 normalizeMult(Vec2 v, num8_24 n)
+	inline Vec2 normalizeMult(Vec2 v, num_det n)
 	{
 		return equal(v, zero()) ? v : scalarMult(v, n / length(v));
 	}
 
 	//angle in radians, please
 	//positive rotates counter-clockwise
-	Vec2 rotate(Vec2 v, num8_24 angle)
+	Vec2 rotate(Vec2 v, num_det angle)
 	{
-		num8_24 cos = fpm::cos(angle);
-		num8_24 sin = fpm::sin(angle);
-		num8_24 x = (v.x * cos) - (v.y * sin);
-		num8_24 y = (v.x * sin) + (v.y * cos);
+		num_det cos = fpm::cos(angle);
+		num_det sin = fpm::sin(angle);
+		num_det x = (v.x * cos) - (v.y * sin);
+		num_det y = (v.x * sin) + (v.y * cos);
 		return Vec2{ x, y };
 	}
 	
@@ -100,7 +100,7 @@ namespace v2
 	Vec2 projection(Vec2 a, Vec2 b)
 	{
 		Vec2 b_normal = normalize(b);
-		num8_24 relative = dot(a, b_normal);
+		num_det relative = dot(a, b_normal);
 		return scalarMult(b_normal, relative);
 	}
 
@@ -112,14 +112,14 @@ namespace v2
 
 	// distance between closest point in a ray and the center of something
 	// won't check radius because them multiple occasions can account for things such as grazing
-	num8_24 closest(Vec2 origin, Vec2 vector, Vec2 center)
+	num_det closest(Vec2 origin, Vec2 vector, Vec2 center)
 	{
 		Vec2 o2c = sub(center, origin);
-		num8_24 relative = dot(o2c, vector);
-		if (relative < num8_24{ 0 })
+		num_det relative = dot(o2c, vector);
+		if (relative < num_det{ 0 })
 		{
 			// dunno how to define the highest value this type holds so this goes lmao
-			return num8_24{ 127 };
+			return num_det{ 127 };
 		}
 		Vec2 projection = scalarMult(vector, relative);
 		Vec2 closest = sub(o2c, projection);
