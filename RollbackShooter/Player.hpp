@@ -194,4 +194,29 @@ Player movePlayer(Player player, Config cfg, PlayerInput input)
 	return player;
 }
 
+Player damagePlayer(Player player, Config cfg, Vec2 origin, int8 force)
+{
+	if (player.pushdown.top() == PState::Charging || player.pushdown.top() == PState::Dashing)
+	{
+		player.pushdown.pop();
+	}
+	player.pushdown.push(PState::Hitstop);
+	switch (force)
+	{
+	case 1:
+		player.hitstopCount = cfg.weakHitstop;
+		player.vel = v2::add(player.vel, v2::normalizeMult(v2::sub(player.pos, origin), cfg.weakForce));
+		break;
+	case 2:
+		player.hitstopCount = cfg.midHitstop;
+		player.vel = v2::add(player.vel, v2::normalizeMult(v2::sub(player.pos, origin), cfg.midForce));
+		break;
+	case 3:
+		player.hitstopCount = cfg.strongHitstop;
+		player.vel = v2::add(player.vel, v2::normalizeMult(v2::sub(player.pos, origin), cfg.strongForce));
+		break;
+	}
+	return player;
+}
+
 #endif

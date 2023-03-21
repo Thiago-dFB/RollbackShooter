@@ -25,9 +25,14 @@ struct Config
 	int16 dashPhase;
 	int16 dashPerfect;
 	int16 chargeDuration;
-	int16 hitstopDuration;
 	int16 playerHealth;
 	int16 roundsToWin;
+	num_det weakForce;
+	int16 weakHitstop;
+	num_det midForce;
+	int16 midHitstop;
+	num_det strongForce;
+	int16 strongHitstop;
 };
 
 #endif

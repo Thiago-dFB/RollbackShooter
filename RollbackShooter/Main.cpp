@@ -97,7 +97,7 @@ GameState simulate(GameState state, Config cfg, InputData input)
 				state.health1 = cfg.playerHealth;
 				state.p2 = respawn(state.p2, cfg);
 				state.health2 = cfg.playerHealth;
-				state.projs.erase(state.projs.begin(), state.projs.end());
+				state.projs.clear();
 			}
 			else
 			{
@@ -111,8 +111,111 @@ GameState simulate(GameState state, Config cfg, InputData input)
 			break;
 		}
 	case RoundPhase::Play:
-		movePlayer(state.p1, cfg, input.p1Input);
-		movePlayer(state.p2, cfg, input.p2Input);
+		//PLAYER 1
+		state.p1 = movePlayer(state.p1, cfg, input.p1Input);
+		switch (state.p1.pushdown.top())
+		{
+		case PState::Dashing:
+			state.p1.dashCount++;
+			break;
+		case PState::Charging:
+			state.p1.chargeCount++;
+			break;
+		case PState::Hitstop:
+			state.p1.hitstopCount--;
+			if (state.p1.hitstopCount <= 0)
+			{
+				state.p1.pushdown.pop();
+			}
+			break;
+		}
+		//PLAYER 2
+		state.p2 = movePlayer(state.p2, cfg, input.p2Input);
+		switch (state.p2.pushdown.top())
+		{
+		case PState::Dashing:
+			state.p2.dashCount++;
+			break;
+		case PState::Charging:
+			state.p2.chargeCount++;
+			break;
+		case PState::Hitstop:
+			state.p2.hitstopCount--;
+			if (state.p2.hitstopCount <= 0)
+			{
+				state.p2.pushdown.pop();
+			}
+			break;
+		}
+		//PROJECTILES - MOVE AND CHECK FOR COLLISION OR PARRY
+		auto it = state.projs.begin();
+		while (it != state.projs.end())
+		{
+			bool erased = false;
+			it->pos = v2::add(it->pos, it->vel);
+			if (v2::length(it->pos) > cfg.arenaRadius)
+			{
+				state.projs.erase(it);
+				erased = true;
+			}
+			else
+			{
+				switch (it->owner)
+				{
+				case 1:
+					if (state.p2.pushdown.top() == PState::Dashing &&
+						state.p2.dashCount < cfg.dashPerfect &&
+						v2::length(v2::sub(it->pos, state.p2.perfectPos)) < (cfg.playerRadius + cfg.projRadius))
+					{
+						//ayo a parry just happened, send that projectile back
+						it->owner = 2;
+						num_det newSpeed = v2::length(it->vel) * cfg.projCounterMultiply;
+						it->vel = v2::normalizeMult(v2::sub(state.p1.pos, it->pos), newSpeed);
+					}
+					else if (v2::length(v2::sub(it->pos, state.p2.pos)) < (cfg.playerRadius + cfg.projRadius))
+					{
+						state.p2 = damagePlayer(state.p2, cfg, it->pos, 1);
+						state.health2--;
+						state.projs.erase(it);
+						erased = true;
+					}
+					break;
+				case 2:
+					if (state.p1.pushdown.top() == PState::Dashing &&
+						state.p1.dashCount < cfg.dashPerfect &&
+						v2::length(v2::sub(it->pos, state.p1.perfectPos)) < (cfg.playerRadius + cfg.projRadius))
+					{
+						//ayo a parry just happened, send that projectile back
+						it->owner = 1;
+						num_det newSpeed = v2::length(it->vel) * cfg.projCounterMultiply;
+						it->vel = v2::normalizeMult(v2::sub(state.p2.pos, it->pos), newSpeed);
+					}
+					else if (v2::length(v2::sub(it->pos, state.p1.pos)) < (cfg.playerRadius + cfg.projRadius))
+					{
+						state.p1 = damagePlayer(state.p1, cfg, it->pos, 1);
+						state.health1--;
+						state.projs.erase(it);
+						erased = true;
+					}
+					break;
+				}
+			}
+			if (!erased) ++it;
+		}
+		//DASHING
+		//both dashing, check collision, compare counts
+		//both dashing, p1 parries
+		//both dashing, p2 parries
+		//p1 dashing, check collision
+		//p2 dashing, check collision
+
+		//ALT SHOT
+		//check parry
+		//check direct hit or graze
+		//check combo
+
+		//finally, act on players' attack if they can (not hitstopped)
+
 		break;
 	}
 	return state;
