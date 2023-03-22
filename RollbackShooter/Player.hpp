@@ -65,73 +65,63 @@ struct Player
 	int16 stunCount = 0;
 };
 
-Player respawn(Player player, Config cfg)
+void respawnPlayer(Player* player, Config cfg)
 {
-	switch (player.id)
+	switch (player->id)
 	{
 	case 1:
-		player.pos = v2::scalarMult(v2::left(), cfg.spawnRadius);
-		player.dir = v2::right();
+		player->pos = v2::scalarMult(v2::left(), cfg.spawnRadius);
+		player->dir = v2::right();
 		break;
 	case 2:
-		player.pos = v2::scalarMult(v2::right(), cfg.spawnRadius);
-		player.dir = v2::left();
+		player->pos = v2::scalarMult(v2::right(), cfg.spawnRadius);
+		player->dir = v2::left();
 		break;
 	}
-	player.vel = v2::zero();
-	player.ammo = cfg.ammoMax;
-	player.chargeCount = 0;
-	player.stamina = cfg.staminaMax;
-	player.perfectPos = v2::zero();
-	player.dashVel = v2::zero();
-	player.dashCount = 0;
-	player.hitstopCount = 0;
-	player.stunCount = 0;
+	player->vel = v2::zero();
+	player->ammo = cfg.ammoMax;
+	player->chargeCount = 0;
+	player->stamina = cfg.staminaMax;
+	player->perfectPos = v2::zero();
+	player->dashVel = v2::zero();
+	player->dashCount = 0;
+	player->hitstopCount = 0;
+	player->stunCount = 0;
 
-	while (!player.pushdown.empty())
+	while (!player->pushdown.empty())
 	{
-		player.pushdown.pop();
+		player->pushdown.pop();
 	}
-	player.pushdown.push(PState::Default);
-
-	return player;
+	player->pushdown.push(PState::Default);
 }
 
-Player movePlayer(Player player, Config cfg, PlayerInput input)
+void movePlayer(Player* player, Config cfg, PlayerInput input)
 {
-	if ((input.atk == AttackInput::Shot && player.ammo < cfg.shotCost) ||
-		(input.atk == AttackInput::AltShot && player.ammo < cfg.altShotCost) ||
-		(input.atk == AttackInput::Dash && player.stamina < cfg.dashCost))
-	{
-		input.atk = AttackInput::None;
-	}
-
-	switch (player.pushdown.top())
+	switch (player->pushdown.top())
 	{
 	case PState::Standby:
-		input.atk = AttackInput::None;
 		input.mov = MoveInput::Neutral;
 		input.mouse = num_det{ 0 };
 		//no break, fall through to default
 	case PState::Default:
 		//MOUSE MOVEMENT
-		player.dir = v2::rotate(player.dir, input.mouse);
+		player->dir = v2::rotate(player->dir, input.mouse);
 
 		//NORMAL WALKING MOVEMENT - ACCELERATION
-		num_det speed = v2::length(player.vel);
-		Vec2 impulse = v2::scalarMult(player.dir, cfg.playerWalkAccel);
+		num_det speed = v2::length(player->vel);
+		Vec2 impulse = v2::scalarMult(player->dir, cfg.playerWalkAccel);
 		num_det quarter_pi = speed.pi() / 4;
 		switch (input.mov)
 		{
 		case MoveInput::Neutral:
 			if (speed < cfg.playerWalkFric)
 			{
-				player.vel = v2::zero();
+				player->vel = v2::zero();
 			}
 			else
 			{
 				//every opposite vector gets normalized to friction
-				impulse = v2::scalarMult(player.vel, num_det{ -1 });
+				impulse = v2::scalarMult(player->vel, num_det{ -1 });
 			}
 			break;
 		case MoveInput::ForLeft:
@@ -157,66 +147,65 @@ Player movePlayer(Player player, Config cfg, PlayerInput input)
 			break;
 		}
 		//if player is backpedaling, turn directly opposite force into friction
-		if (v2::dot(player.vel, impulse) < num_det{ 0 })
+		if (v2::dot(player->vel, impulse) < num_det{ 0 })
 		{
-			impulse = v2::rejection(impulse, player.vel);
-			impulse = v2::add(impulse, v2::normalizeMult(player.vel, -cfg.playerWalkFric));
+			impulse = v2::rejection(impulse, player->vel);
+			impulse = v2::add(impulse, v2::normalizeMult(player->vel, -cfg.playerWalkFric));
 		}
-		player.vel = v2::add(player.vel, impulse);
-		if (v2::length(player.vel) > cfg.playerWalkSpeed)
+		player->vel = v2::add(player->vel, impulse);
+		if (v2::length(player->vel) > cfg.playerWalkSpeed)
 		{
-			player.vel = v2::normalizeMult(player.vel, cfg.playerWalkSpeed);
+			player->vel = v2::normalizeMult(player->vel, cfg.playerWalkSpeed);
 		}
 
 		//NORMAL WALKING MOVEMENT - DISPLACEMENT AND CORRECTION
-		player.pos = v2::add(player.pos, player.vel);
-		if (v2::length(player.pos) > cfg.arenaRadius)
+		player->pos = v2::add(player->pos, player->vel);
+		if (v2::length(player->pos) > cfg.arenaRadius)
 		{
-			player.pos = v2::normalizeMult(player.pos, cfg.arenaRadius);
-			player.vel = v2::rejection(player.vel, player.pos);
+			player->pos = v2::normalizeMult(player->pos, cfg.arenaRadius);
+			player->vel = v2::rejection(player->vel, player->pos);
 		}
 		break;
 	case PState::Dashing:
-		if (player.dashCount < cfg.dashPhase)
+		if (player->dashCount < cfg.dashPhase)
 		{
-			num_det alpha = num_det{ player.dashCount } / num_det{ cfg.dashPhase };
-			Vec2 displace = v2::lerp(player.vel, player.dashVel, alpha);
-			player.pos = v2::add(player.pos, displace);
+			num_det alpha = num_det{ player->dashCount } / num_det{ cfg.dashPhase };
+			Vec2 displace = v2::lerp(player->vel, player->dashVel, alpha);
+			player->pos = v2::add(player->pos, displace);
 		}
 		else
 		{
-			player.pos = v2::add(player.pos, player.dashVel);
-			player.vel = player.dashVel;
+			player->pos = v2::add(player->pos, player->dashVel);
+			player->vel = player->dashVel;
 		}
 		break;
 	}
-
-	return player;
 }
 
-Player damagePlayer(Player player, Config cfg, Vec2 origin, int8 force)
+void damagePlayer(Player* player, Config cfg, Vec2 origin, int8 force)
 {
-	if (player.pushdown.top() == PState::Charging || player.pushdown.top() == PState::Dashing)
+	//CANCEL CURRENT ACTION
+	if (player->pushdown.top() == PState::Charging || player->pushdown.top() == PState::Dashing)
 	{
-		player.pushdown.pop();
+		player->pushdown.pop();
 	}
-	player.pushdown.push(PState::Hitstop);
+	//APPLY HITSTOP AND FORCE
+	player->pushdown.push(PState::Hitstop);
 	switch (force)
 	{
 	case 1:
-		player.hitstopCount = cfg.weakHitstop;
-		player.vel = v2::add(player.vel, v2::normalizeMult(v2::sub(player.pos, origin), cfg.weakForce));
+		player->hitstopCount = cfg.weakHitstop;
+		player->vel = v2::add(player->vel, v2::normalizeMult(v2::sub(player->pos, origin), cfg.weakForce));
 		break;
 	case 2:
-		player.hitstopCount = cfg.midHitstop;
-		player.vel = v2::add(player.vel, v2::normalizeMult(v2::sub(player.pos, origin), cfg.midForce));
+		player->hitstopCount = cfg.midHitstop;
+		player->vel = v2::add(player->vel, v2::normalizeMult(v2::sub(player->pos, origin), cfg.midForce));
 		break;
 	case 3:
-		player.hitstopCount = cfg.strongHitstop;
-		player.vel = v2::add(player.vel, v2::normalizeMult(v2::sub(player.pos, origin), cfg.strongForce));
+		player->hitstopCount = cfg.strongHitstop;
+		player->vel = v2::add(player->vel, v2::normalizeMult(v2::sub(player->pos, origin), cfg.strongForce));
 		break;
 	}
-	return player;
 }
 
 #endif
