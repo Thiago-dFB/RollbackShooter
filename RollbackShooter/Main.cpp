@@ -117,6 +117,10 @@ GameState simulate(GameState state, Config cfg, InputData input)
 		{
 		case PState::Dashing:
 			state.p1.dashCount++;
+			if (state.p1.dashCount >= cfg.dashDuration)
+			{
+				state.p1.pushdown.pop();
+			}
 			break;
 		case PState::Charging:
 			state.p1.chargeCount++;
@@ -207,11 +211,66 @@ GameState simulate(GameState state, Config cfg, InputData input)
 			if (!erased) ++it;
 		}
 		//DASHING
-		//both dashing, check collision, compare counts
-		//both dashing, p1 parries
-		//both dashing, p2 parries
-		//p1 dashing, check collision
-		//p2 dashing, check collision
+		bool directColl = v2::length(v2::sub(state.p1.pos, state.p2.pos)) < (cfg.playerRadius + cfg.playerRadius);
+		if (state.p1.pushdown.top() == PState::Dashing && state.p2.pushdown.top() == PState::Dashing)
+		{
+			if (state.p2.dashCount < cfg.dashPerfect && (v2::length(v2::sub(state.p1.pos, state.p2.perfectPos))) < (cfg.playerRadius + cfg.playerRadius))
+			{
+				//P2 PERFECT EVADES
+				state.p1 = damagePlayer(state.p1, cfg, state.p2.perfectPos, 2);
+				state.health1--;
+				state.p2.pushdown.push(PState::Hitstop);
+				state.p2.hitstopCount = cfg.midHitstop;
+			}
+			else if (state.p1.dashCount < cfg.dashPerfect && (v2::length(v2::sub(state.p2.pos, state.p1.perfectPos))) < (cfg.playerRadius + cfg.playerRadius))
+			{
+				//P1 PERFECT EVADES
+				state.p2 = damagePlayer(state.p2, cfg, state.p1.perfectPos, 2);
+				state.health2--;
+				state.p1.pushdown.push(PState::Hitstop);
+				state.p1.hitstopCount = cfg.midHitstop;
+			}
+			else if (directColl)
+			{
+				//DIRECT HIT, MOST RECENT DASH LOSES
+				int dashDiff = state.p1.dashCount - state.p2.dashCount;
+				if (dashDiff > 0)
+				{
+					state.p2 = damagePlayer(state.p2, cfg, state.p1.pos, 2);
+					state.health2--;
+					state.p1.pushdown.push(PState::Hitstop);
+					state.p1.hitstopCount = cfg.midHitstop;
+				}
+				else if (dashDiff < 0)
+				{
+					state.p1 = damagePlayer(state.p1, cfg, state.p2.pos, 2);
+					state.health1--;
+					state.p2.pushdown.push(PState::Hitstop);
+					state.p2.hitstopCount = cfg.midHitstop;
+				}
+				else
+				{
+					state.p1 = damagePlayer(state.p1, cfg, state.p2.pos, 2);
+					state.health1--;
+					state.p2 = damagePlayer(state.p2, cfg, state.p1.pos, 2);
+					state.health2--;
+				}
+			}
+		}
+		else if (directColl && state.p1.pushdown.top() == PState::Dashing)
+		{
+			state.p2 = damagePlayer(state.p2, cfg, state.p1.pos, 2);
+			state.health2--;
+			state.p1.pushdown.push(PState::Hitstop);
+			state.p1.hitstopCount = cfg.midHitstop;
+		}
+		else if (directColl && state.p2.pushdown.top() == PState::Dashing)
+		{
+			state.p1 = damagePlayer(state.p1, cfg, state.p2.pos, 2);
+			state.health1--;
+			state.p2.pushdown.push(PState::Hitstop);
+			state.p2.hitstopCount = cfg.midHitstop;
+		}
 
 		//ALT SHOT
 		//check parry
