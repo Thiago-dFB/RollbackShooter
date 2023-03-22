@@ -212,19 +212,20 @@ GameState simulate(GameState state, Config cfg, InputData input)
 		}
 		//DASHING
 		bool directColl = v2::length(v2::sub(state.p1.pos, state.p2.pos)) < (cfg.playerRadius + cfg.playerRadius);
+		//BOTH DASHING IN THIS FRAME
 		if (state.p1.pushdown.top() == PState::Dashing && state.p2.pushdown.top() == PState::Dashing)
 		{
+			//P2 PERFECT EVADES
 			if (state.p2.dashCount < cfg.dashPerfect && (v2::length(v2::sub(state.p1.pos, state.p2.perfectPos))) < (cfg.playerRadius + cfg.playerRadius))
 			{
-				//P2 PERFECT EVADES
 				damagePlayer(&state.p1, cfg, state.p2.perfectPos, 2);
 				state.health1--;
 				state.p2.pushdown.push(PState::Hitstop);
 				state.p2.hitstopCount = cfg.midHitstop;
 			}
+			//P1 PERFECT EVADES
 			else if (state.p1.dashCount < cfg.dashPerfect && (v2::length(v2::sub(state.p2.pos, state.p1.perfectPos))) < (cfg.playerRadius + cfg.playerRadius))
 			{
-				//P1 PERFECT EVADES
 				damagePlayer(&state.p2, cfg, state.p1.perfectPos, 2);
 				state.health2--;
 				state.p1.pushdown.push(PState::Hitstop);
@@ -257,6 +258,7 @@ GameState simulate(GameState state, Config cfg, InputData input)
 				}
 			}
 		}
+		//P1 HITS P2
 		else if (directColl && state.p1.pushdown.top() == PState::Dashing)
 		{
 			damagePlayer(&state.p2, cfg, state.p1.pos, 2);
@@ -264,6 +266,7 @@ GameState simulate(GameState state, Config cfg, InputData input)
 			state.p1.pushdown.push(PState::Hitstop);
 			state.p1.hitstopCount = cfg.midHitstop;
 		}
+		//P2 HITS P1
 		else if (directColl && state.p2.pushdown.top() == PState::Dashing)
 		{
 			damagePlayer(&state.p1, cfg, state.p2.pos, 2);
