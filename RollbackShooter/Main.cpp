@@ -1,7 +1,7 @@
 //std
 #include <string>
-#include <stack>
-#include <vector> 
+//ETL
+#include <etl/vector.h>
 //GGPO
 #include <ggponet.h>
 //Raylib
@@ -14,6 +14,7 @@
 const int PREGAME_COUNTDOWN = 180;
 const int ROUNDTIMER_COUNTDOWN = 120 * 60;
 const int ROUNDEND_COUNTDOWN = 300;
+const size_t MAX_PROJECTILES = 32;
 
 enum RoundPhase
 {
@@ -52,7 +53,7 @@ struct GameState
 	int8 rounds2 = 0;
 	bool p2DmgThisFrame = false;
 	
-	std::vector<Projectile> projs;
+	etl::vector<Projectile, MAX_PROJECTILES> projs;
 };
 
 GameState initialState(const Config* cfg)

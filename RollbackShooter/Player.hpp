@@ -1,6 +1,9 @@
 #ifndef RBST_PLAYER_HPP
 #define RBST_PLAYER_HPP
 
+//ETL
+#include <etl/stack.h>
+
 #include "Math.hpp"
 #include "Config.hpp"
 
@@ -47,7 +50,7 @@ struct PlayerInput
 struct Player
 {
 	playerid id = 0;
-	std::stack<PState> pushdown;
+	etl::stack<PState, 4> pushdown;
 	//xform
 	Vec2 pos = v2::zero();
 	Vec2 vel = v2::zero();
