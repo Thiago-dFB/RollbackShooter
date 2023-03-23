@@ -71,10 +71,10 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>C:\DEV\.libs\ggpo\src\include;C:\DEV\.libs\fpm-1.1.0\include;C:\DEV\.libs\raylib-4.5.0_win64_msvc16\include;$(IncludePath)</IncludePath>
+    <IncludePath>C:\DEV\.libs\tomlplusplus-3.3.0\include;C:\DEV\.libs\etl-20.35.14\include;C:\DEV\.libs\ggpo\src\include;C:\DEV\.libs\fpm-1.1.0\include;C:\DEV\.libs\raylib-4.5.0_win64_msvc16\include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <IncludePath>C:\DEV\.libs\ggpo\src\include;C:\DEV\.libs\fpm-1.1.0\include;C:\DEV\.libs\raylib-4.5.0_win64_msvc16\include;$(IncludePath)</IncludePath>
+    <IncludePath>C:\DEV\.libs\tomlplusplus-3.3.0\include;C:\DEV\.libs\etl-20.35.14\include;C:\DEV\.libs\ggpo\src\include;C:\DEV\.libs\fpm-1.1.0\include;C:\DEV\.libs\raylib-4.5.0_win64_msvc16\include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -110,6 +110,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -126,6 +127,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -143,6 +145,11 @@
     <ClInclude Include="Config.hpp" />
     <ClInclude Include="Math.hpp" />
     <ClInclude Include="Player.hpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="RBST.toml">
+      <DeploymentContent>true</DeploymentContent>
+    </None>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
