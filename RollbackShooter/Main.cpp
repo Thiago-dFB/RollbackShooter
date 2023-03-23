@@ -127,6 +127,31 @@ void altShot(GameState* state, Config cfg, Vec2 origin, Vec2 direction, playerid
 	}
 }
 
+Vec2 pickDashDir(Vec2 front, MoveInput mov)
+{
+	const num_det num;
+	const num_det quarter_pi = num.pi() / 4;
+	switch (mov)
+	{
+	case MoveInput::ForLeft:
+		return v2::rotate(front, quarter_pi);
+	case MoveInput::Left:
+		return v2::rotate(front, num.half_pi());
+	case MoveInput::BackLeft:
+		return v2::rotate(front, num.pi() - quarter_pi);
+	case MoveInput::Back:
+		return v2::scalarMult(front, num_det{ -1 });
+	case MoveInput::BackRight:
+		return v2::rotate(front, num.pi() + quarter_pi);
+	case MoveInput::Right:
+		return v2::rotate(front, -num.half_pi());
+	case MoveInput::ForRight:
+		return v2::rotate(front, -quarter_pi);
+	default:
+		return front;
+	}
+}
+
 GameState simulate(GameState state, Config cfg, InputData input)
 {
 	state.frame++;
@@ -341,7 +366,75 @@ GameState simulate(GameState state, Config cfg, InputData input)
 			altShot(&state, cfg, state.p2.pos, state.p2.dir, 2);
 		}
 
-		//finally, act on players' attack if they can (not hitstopped)
+		//PLAYER 1 ATTACKS
+		if (state.p1.pushdown.top() == PState::Default)
+		{
+			switch (input.p1Input.atk)
+			{
+			case AttackInput::Dash:
+				if (state.p1.stamina < cfg.dashCost) break;
+				state.p1.dashCount = 0;
+				state.p1.dashVel = pickDashDir(v2::scalarMult(state.p1.dir, cfg.playerDashSpeed), input.p1Input.mov);
+				state.p1.pushdown.push(PState::Dashing);
+				state.p1.stamina = state.p1.stamina - cfg.dashCost;
+				break;
+			case AttackInput::Shot:
+				if (state.p1.ammo < cfg.shotCost) break;
+				state.projs.push_back({ state.p1.pos, v2::scalarMult(state.p1.dir, cfg.projSpeed), 1 });
+				state.p1.ammo = state.p1.ammo - cfg.shotCost;
+				break;
+			case AttackInput::AltShot:
+				if (state.p1.ammo < cfg.altShotCost) break;
+				state.p1.chargeCount = 0;
+				state.p1.pushdown.push(PState::Charging);
+				state.p1.ammo = state.p1.ammo - cfg.altShotCost;
+				break;
+			}
+		}
+		//WEAVE A DASH INTO ANOTHER
+		else if (state.p1.pushdown.top() == PState::Dashing &&
+			input.p1Input.atk == AttackInput::Dash &&
+			state.p1.stamina >= cfg.dashCost)
+		{
+			state.p1.dashCount = 0;
+			state.p1.dashVel = pickDashDir(v2::scalarMult(state.p1.dir, cfg.playerDashSpeed), input.p1Input.mov);
+			state.p1.stamina = state.p1.stamina - cfg.dashCost;
+		}
+
+		//PLAYER 2 ATTACKS
+		if (state.p2.pushdown.top() == PState::Default)
+		{
+			switch (input.p2Input.atk)
+			{
+			case AttackInput::Dash:
+				if (state.p2.stamina < cfg.dashCost) break;
+				state.p2.dashCount = 0;
+				state.p2.dashVel = pickDashDir(v2::scalarMult(state.p2.dir, cfg.playerDashSpeed), input.p2Input.mov);
+				state.p2.pushdown.push(PState::Dashing);
+				state.p2.stamina = state.p2.stamina - cfg.dashCost;
+				break;
+			case AttackInput::Shot:
+				if (state.p2.ammo < cfg.shotCost) break;
+				state.projs.push_back({ state.p2.pos, v2::scalarMult(state.p2.dir, cfg.projSpeed), 1 });
+				state.p2.ammo = state.p2.ammo - cfg.shotCost;
+				break;
+			case AttackInput::AltShot:
+				if (state.p2.ammo < cfg.altShotCost) break;
+				state.p2.chargeCount = 0;
+				state.p2.pushdown.push(PState::Charging);
+				state.p2.ammo = state.p2.ammo - cfg.altShotCost;
+				break;
+			}
+		}
+		//WEAVE A DASH INTO ANOTHER
+		else if (state.p2.pushdown.top() == PState::Dashing &&
+			input.p2Input.atk == AttackInput::Dash &&
+			state.p2.stamina >= cfg.dashCost)
+		{
+			state.p2.dashCount = 0;
+			state.p2.dashVel = pickDashDir(v2::scalarMult(state.p2.dir, cfg.playerDashSpeed), input.p2Input.mov);
+			state.p2.stamina = state.p2.stamina - cfg.dashCost;
+		}
 
 		break;
 	}
