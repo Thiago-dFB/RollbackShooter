@@ -1,10 +1,11 @@
 #ifndef RBST_MATH_HPP
 #define RBST_MATH_HPP
 
+//fpm
 #include <fpm/fixed.hpp>
 #include <fpm/math.hpp>
 
-using num_det = fpm::fixed_8_24;
+using num_det = fpm::fixed<std::int32_t, std::int64_t, 24>;
 using int8 = std::int8_t;
 using int16 = std::int16_t;
 
