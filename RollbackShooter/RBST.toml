@@ -1,0 +1,49 @@
+[GameConfig]
+# some things to consider
+# - deterministic number is set to 8.24 so only values smaller than 128 for decimal values
+#       (y'know, the ones in string so that the parser doesn't possibly marshall as floats, I haven't checked it)
+# - projectile limit is 32 just in case (and I haven't optimized collisions with partioning anyway so don't go ham)
+# - set speeds and forces to unit per second instead of per frame, they're already being divided by 60 in the code
+
+[GameConfig.GameRules]
+playerHealth = 5
+roundsToWin  = 2
+
+[GameConfig.PlayerResources]
+ammoMax        = 120    #frames for ammo to fully fill
+shotCost       = 60
+altShotCost    = 120
+staminaMax     = 150    #frames for stamina to fully fill
+dashCost       = 50
+
+[GameConfig.PlayerActions]
+dashPhase      = 10     #frames for normal movement to completely phase into dash movement
+dashPerfect    = 15     #frames for perfect evade window
+dashDuration   = 60     #dash length in frames
+chargeDuration = 60     #charge length in frames
+
+[GameConfig.PlayerSpeed]
+playerWalkSpeed = "0.8"
+playerWalkAccel = "0.4"
+playerWalkFric  = "0.6"
+playerDashSpeed = "1.2"
+
+[GameConfig.ProjSpeed]
+projSpeed = "0.6"
+projCounterMultiply = "1.2"
+
+[GameConfig.Radius]
+playerRadius = "0.5"
+grazeRadius  = "0.7"
+projRadius   = "0.3"
+comboRadius  = "3.0"
+arenaRadius  = "12.0"
+spawnRadius  = "10.0"   #distance of each player from the center
+
+[GameConfig.HitStrength]
+weakForce     = "1.0"
+weakHitstop   = 5
+midForce      = "2.5"
+midHitstop   = 10
+strongForce   = "4.0"
+strongHitstop = 20
