@@ -53,7 +53,7 @@ struct GameState
 	std::vector<Projectile> projs;
 };
 
-GameState initialState(Config cfg)
+GameState initialState(const Config* cfg)
 {
 	GameState state;
 	state.frame = 0;
@@ -62,58 +62,58 @@ GameState initialState(Config cfg)
 
 	state.p1.id = 1;
 	respawnPlayer(&(state.p1), cfg);
-	state.health1 = cfg.playerHealth;
+	state.health1 = cfg->playerHealth;
 	state.rounds1 = 0;
 
 	state.p2.id = 2;
 	respawnPlayer(&(state.p2), cfg);
-	state.health2 = cfg.playerHealth;
+	state.health2 = cfg->playerHealth;
 	state.rounds2 = 0;
 
 	return state;
 }
 
-void altShot(GameState* state, Config cfg, Vec2 origin, Vec2 direction, playerid owner)
+void altShot(GameState* state, const Config* cfg, Vec2 origin, Vec2 direction, playerid owner)
 {
 	Player* opposition;
 	if (owner == 1)	opposition = &(state->p2); else opposition = &(state->p1);
 	//PARRY
 	if (opposition->pushdown.top() == PState::Dashing &&
-		opposition->dashCount < cfg.dashPerfect &&
-		v2::closest(origin, direction, opposition->perfectPos) < cfg.playerRadius)
+		opposition->dashCount < cfg->dashPerfect &&
+		v2::closest(origin, direction, opposition->perfectPos) < cfg->playerRadius)
 	{
 		//right back at ya
 		origin = v2::add(v2::projection(v2::sub(opposition->perfectPos, origin), direction), origin);
 		direction = v2::scalarMult(direction, num_det{ -1 });
 		owner = opposition->id;
 		opposition->pushdown.push(PState::Hitstop);
-		opposition->hitstopCount = cfg.midHitstop;
+		opposition->hitstopCount = cfg->midHitstop;
 		if (owner == 1)	opposition = &(state->p2); else opposition = &(state->p1);
 	}
 	//DIRECT HIT OR GRAZE
 	num_det dist = v2::closest(origin, direction, opposition->pos);
-	if (dist < cfg.playerRadius)
+	if (dist < cfg->playerRadius)
 	{
 		damagePlayer(opposition, cfg, origin, 2);
 		if (owner == 1)	(state->health2)--; else (state->health1)--;
 	}
-	else if (dist < cfg.grazeRadius)
+	else if (dist < cfg->grazeRadius)
 	{
-		opposition->ammo = cfg.ammoMax;
-		opposition->stamina = cfg.staminaMax;
+		opposition->ammo = cfg->ammoMax;
+		opposition->stamina = cfg->staminaMax;
 	}
 	//COMBO
 	auto it = state->projs.begin();
 	while (it != state->projs.end())
 	{
-		if (v2::closest(origin, direction, it->pos) < cfg.projRadius)
+		if (v2::closest(origin, direction, it->pos) < cfg->projRadius)
 		{
-			if (v2::length(v2::sub(it->pos, state->p1.pos)) < (cfg.comboRadius + cfg.playerRadius))
+			if (v2::length(v2::sub(it->pos, state->p1.pos)) < (cfg->comboRadius + cfg->playerRadius))
 			{
 				damagePlayer(&(state->p1), cfg, it->pos, 3);
 				(state->health1)--;
 			}
-			if (v2::length(v2::sub(it->pos, state->p2.pos)) < (cfg.comboRadius + cfg.playerRadius))
+			if (v2::length(v2::sub(it->pos, state->p2.pos)) < (cfg->comboRadius + cfg->playerRadius))
 			{
 				damagePlayer(&(state->p2), cfg, it->pos, 3);
 				(state->health2)--;
@@ -152,7 +152,7 @@ Vec2 pickDashDir(Vec2 front, MoveInput mov)
 	}
 }
 
-GameState simulate(GameState state, Config cfg, InputData input)
+GameState simulate(GameState state, const Config* cfg, InputData input)
 {
 	state.frame++;
 	state.roundCountdown--;
@@ -168,14 +168,14 @@ GameState simulate(GameState state, Config cfg, InputData input)
 	case RoundPhase::End:
 		if (state.roundCountdown <= 0)
 		{
-			if (state.rounds1 < cfg.roundsToWin && state.rounds2 < cfg.roundsToWin)
+			if (state.rounds1 < cfg->roundsToWin && state.rounds2 < cfg->roundsToWin)
 			{
 				state.roundCountdown = PREGAME_COUNTDOWN;
 				state.phase = RoundPhase::Countdown;
 				respawnPlayer(&(state.p1), cfg);
-				state.health1 = cfg.playerHealth;
+				state.health1 = cfg->playerHealth;
 				respawnPlayer(&(state.p2), cfg);
-				state.health2 = cfg.playerHealth;
+				state.health2 = cfg->playerHealth;
 				state.projs.clear();
 			}
 			else
@@ -196,7 +196,7 @@ GameState simulate(GameState state, Config cfg, InputData input)
 		{
 		case PState::Dashing:
 			state.p1.dashCount++;
-			if (state.p1.dashCount >= cfg.dashDuration)
+			if (state.p1.dashCount >= cfg->dashDuration)
 			{
 				state.p1.pushdown.pop();
 			}
@@ -236,7 +236,7 @@ GameState simulate(GameState state, Config cfg, InputData input)
 		{
 			bool erased = false;
 			it->pos = v2::add(it->pos, it->vel);
-			if (v2::length(it->pos) > cfg.arenaRadius)
+			if (v2::length(it->pos) > cfg->arenaRadius)
 			{
 				state.projs.erase(it);
 				erased = true;
@@ -247,17 +247,17 @@ GameState simulate(GameState state, Config cfg, InputData input)
 				{
 				case 1:
 					if (state.p2.pushdown.top() == PState::Dashing &&
-						state.p2.dashCount < cfg.dashPerfect &&
-						v2::length(v2::sub(it->pos, state.p2.perfectPos)) < (cfg.playerRadius + cfg.projRadius))
+						state.p2.dashCount < cfg->dashPerfect &&
+						v2::length(v2::sub(it->pos, state.p2.perfectPos)) < (cfg->playerRadius + cfg->projRadius))
 					{
 						//ayo a parry just happened, send that projectile back
 						it->owner = 2;
-						num_det newSpeed = v2::length(it->vel) * cfg.projCounterMultiply;
+						num_det newSpeed = v2::length(it->vel) * cfg->projCounterMultiply;
 						it->vel = v2::normalizeMult(v2::sub(state.p1.pos, it->pos), newSpeed);
 						state.p2.pushdown.push(PState::Hitstop);
-						state.p2.hitstopCount = cfg.weakHitstop;
+						state.p2.hitstopCount = cfg->weakHitstop;
 					}
-					else if (v2::length(v2::sub(it->pos, state.p2.pos)) < (cfg.playerRadius + cfg.projRadius))
+					else if (v2::length(v2::sub(it->pos, state.p2.pos)) < (cfg->playerRadius + cfg->projRadius))
 					{
 						damagePlayer(&(state.p2), cfg, it->pos, 1);
 						state.health2--;
@@ -267,17 +267,17 @@ GameState simulate(GameState state, Config cfg, InputData input)
 					break;
 				case 2:
 					if (state.p1.pushdown.top() == PState::Dashing &&
-						state.p1.dashCount < cfg.dashPerfect &&
-						v2::length(v2::sub(it->pos, state.p1.perfectPos)) < (cfg.playerRadius + cfg.projRadius))
+						state.p1.dashCount < cfg->dashPerfect &&
+						v2::length(v2::sub(it->pos, state.p1.perfectPos)) < (cfg->playerRadius + cfg->projRadius))
 					{
 						//ayo a parry just happened, send that projectile back
 						it->owner = 1;
-						num_det newSpeed = v2::length(it->vel) * cfg.projCounterMultiply;
+						num_det newSpeed = v2::length(it->vel) * cfg->projCounterMultiply;
 						it->vel = v2::normalizeMult(v2::sub(state.p2.pos, it->pos), newSpeed);
 						state.p1.pushdown.push(PState::Hitstop);
-						state.p1.hitstopCount = cfg.weakHitstop;
+						state.p1.hitstopCount = cfg->weakHitstop;
 					}
-					else if (v2::length(v2::sub(it->pos, state.p1.pos)) < (cfg.playerRadius + cfg.projRadius))
+					else if (v2::length(v2::sub(it->pos, state.p1.pos)) < (cfg->playerRadius + cfg->projRadius))
 					{
 						damagePlayer(&(state.p1), cfg, it->pos, 1);
 						state.health1--;
@@ -290,25 +290,25 @@ GameState simulate(GameState state, Config cfg, InputData input)
 			if (!erased) ++it;
 		}
 		//DASHING
-		bool directColl = v2::length(v2::sub(state.p1.pos, state.p2.pos)) < (cfg.playerRadius + cfg.playerRadius);
+		bool directColl = v2::length(v2::sub(state.p1.pos, state.p2.pos)) < (cfg->playerRadius + cfg->playerRadius);
 		//BOTH DASHING IN THIS FRAME
 		if (state.p1.pushdown.top() == PState::Dashing && state.p2.pushdown.top() == PState::Dashing)
 		{
 			//P2 PERFECT EVADES
-			if (state.p2.dashCount < cfg.dashPerfect && (v2::length(v2::sub(state.p1.pos, state.p2.perfectPos))) < (cfg.playerRadius + cfg.playerRadius))
+			if (state.p2.dashCount < cfg->dashPerfect && (v2::length(v2::sub(state.p1.pos, state.p2.perfectPos))) < (cfg->playerRadius + cfg->playerRadius))
 			{
 				damagePlayer(&(state.p1), cfg, state.p2.perfectPos, 2);
 				state.health1--;
 				state.p2.pushdown.push(PState::Hitstop);
-				state.p2.hitstopCount = cfg.midHitstop;
+				state.p2.hitstopCount = cfg->midHitstop;
 			}
 			//P1 PERFECT EVADES
-			else if (state.p1.dashCount < cfg.dashPerfect && (v2::length(v2::sub(state.p2.pos, state.p1.perfectPos))) < (cfg.playerRadius + cfg.playerRadius))
+			else if (state.p1.dashCount < cfg->dashPerfect && (v2::length(v2::sub(state.p2.pos, state.p1.perfectPos))) < (cfg->playerRadius + cfg->playerRadius))
 			{
 				damagePlayer(&(state.p2), cfg, state.p1.perfectPos, 2);
 				state.health2--;
 				state.p1.pushdown.push(PState::Hitstop);
-				state.p1.hitstopCount = cfg.midHitstop;
+				state.p1.hitstopCount = cfg->midHitstop;
 			}
 			else if (directColl)
 			{
@@ -319,14 +319,14 @@ GameState simulate(GameState state, Config cfg, InputData input)
 					damagePlayer(&(state.p2), cfg, state.p1.pos, 2);
 					state.health2--;
 					state.p1.pushdown.push(PState::Hitstop);
-					state.p1.hitstopCount = cfg.midHitstop;
+					state.p1.hitstopCount = cfg->midHitstop;
 				}
 				else if (dashDiff < 0)
 				{
 					damagePlayer(&(state.p1), cfg, state.p2.pos, 2);
 					state.health1--;
 					state.p2.pushdown.push(PState::Hitstop);
-					state.p2.hitstopCount = cfg.midHitstop;
+					state.p2.hitstopCount = cfg->midHitstop;
 				}
 				else
 				{
@@ -343,7 +343,7 @@ GameState simulate(GameState state, Config cfg, InputData input)
 			damagePlayer(&(state.p2), cfg, state.p1.pos, 2);
 			state.health2--;
 			state.p1.pushdown.push(PState::Hitstop);
-			state.p1.hitstopCount = cfg.midHitstop;
+			state.p1.hitstopCount = cfg->midHitstop;
 		}
 		//P2 HITS P1
 		else if (directColl && state.p2.pushdown.top() == PState::Dashing)
@@ -351,16 +351,16 @@ GameState simulate(GameState state, Config cfg, InputData input)
 			damagePlayer(&(state.p1), cfg, state.p2.pos, 2);
 			state.health1--;
 			state.p2.pushdown.push(PState::Hitstop);
-			state.p2.hitstopCount = cfg.midHitstop;
+			state.p2.hitstopCount = cfg->midHitstop;
 		}
 
 		//ALT SHOT
-		if (state.p1.pushdown.top() == PState::Charging && state.p1.chargeCount >= cfg.chargeDuration)
+		if (state.p1.pushdown.top() == PState::Charging && state.p1.chargeCount >= cfg->chargeDuration)
 		{
 			state.p1.pushdown.pop();
 			altShot(&state, cfg, state.p1.pos, state.p1.dir, 1);
 		}
-		if (state.p2.pushdown.top() == PState::Charging && state.p2.chargeCount >= cfg.chargeDuration)
+		if (state.p2.pushdown.top() == PState::Charging && state.p2.chargeCount >= cfg->chargeDuration)
 		{
 			state.p2.pushdown.pop();
 			altShot(&state, cfg, state.p2.pos, state.p2.dir, 2);
@@ -372,33 +372,33 @@ GameState simulate(GameState state, Config cfg, InputData input)
 			switch (input.p1Input.atk)
 			{
 			case AttackInput::Dash:
-				if (state.p1.stamina < cfg.dashCost) break;
+				if (state.p1.stamina < cfg->dashCost) break;
 				state.p1.dashCount = 0;
-				state.p1.dashVel = pickDashDir(v2::scalarMult(state.p1.dir, cfg.playerDashSpeed), input.p1Input.mov);
+				state.p1.dashVel = pickDashDir(v2::scalarMult(state.p1.dir, cfg->playerDashSpeed), input.p1Input.mov);
 				state.p1.pushdown.push(PState::Dashing);
-				state.p1.stamina = state.p1.stamina - cfg.dashCost;
+				state.p1.stamina = state.p1.stamina - cfg->dashCost;
 				break;
 			case AttackInput::Shot:
-				if (state.p1.ammo < cfg.shotCost) break;
-				state.projs.push_back({ state.p1.pos, v2::scalarMult(state.p1.dir, cfg.projSpeed), 1 });
-				state.p1.ammo = state.p1.ammo - cfg.shotCost;
+				if (state.p1.ammo < cfg->shotCost) break;
+				state.projs.push_back({ state.p1.pos, v2::scalarMult(state.p1.dir, cfg->projSpeed), 1 });
+				state.p1.ammo = state.p1.ammo - cfg->shotCost;
 				break;
 			case AttackInput::AltShot:
-				if (state.p1.ammo < cfg.altShotCost) break;
+				if (state.p1.ammo < cfg->altShotCost) break;
 				state.p1.chargeCount = 0;
 				state.p1.pushdown.push(PState::Charging);
-				state.p1.ammo = state.p1.ammo - cfg.altShotCost;
+				state.p1.ammo = state.p1.ammo - cfg->altShotCost;
 				break;
 			}
 		}
 		//WEAVE A DASH INTO ANOTHER
 		else if (state.p1.pushdown.top() == PState::Dashing &&
 			input.p1Input.atk == AttackInput::Dash &&
-			state.p1.stamina >= cfg.dashCost)
+			state.p1.stamina >= cfg->dashCost)
 		{
 			state.p1.dashCount = 0;
-			state.p1.dashVel = pickDashDir(v2::scalarMult(state.p1.dir, cfg.playerDashSpeed), input.p1Input.mov);
-			state.p1.stamina = state.p1.stamina - cfg.dashCost;
+			state.p1.dashVel = pickDashDir(v2::scalarMult(state.p1.dir, cfg->playerDashSpeed), input.p1Input.mov);
+			state.p1.stamina = state.p1.stamina - cfg->dashCost;
 		}
 
 		//PLAYER 2 ATTACKS
@@ -407,33 +407,33 @@ GameState simulate(GameState state, Config cfg, InputData input)
 			switch (input.p2Input.atk)
 			{
 			case AttackInput::Dash:
-				if (state.p2.stamina < cfg.dashCost) break;
+				if (state.p2.stamina < cfg->dashCost) break;
 				state.p2.dashCount = 0;
-				state.p2.dashVel = pickDashDir(v2::scalarMult(state.p2.dir, cfg.playerDashSpeed), input.p2Input.mov);
+				state.p2.dashVel = pickDashDir(v2::scalarMult(state.p2.dir, cfg->playerDashSpeed), input.p2Input.mov);
 				state.p2.pushdown.push(PState::Dashing);
-				state.p2.stamina = state.p2.stamina - cfg.dashCost;
+				state.p2.stamina = state.p2.stamina - cfg->dashCost;
 				break;
 			case AttackInput::Shot:
-				if (state.p2.ammo < cfg.shotCost) break;
-				state.projs.push_back({ state.p2.pos, v2::scalarMult(state.p2.dir, cfg.projSpeed), 1 });
-				state.p2.ammo = state.p2.ammo - cfg.shotCost;
+				if (state.p2.ammo < cfg->shotCost) break;
+				state.projs.push_back({ state.p2.pos, v2::scalarMult(state.p2.dir, cfg->projSpeed), 1 });
+				state.p2.ammo = state.p2.ammo - cfg->shotCost;
 				break;
 			case AttackInput::AltShot:
-				if (state.p2.ammo < cfg.altShotCost) break;
+				if (state.p2.ammo < cfg->altShotCost) break;
 				state.p2.chargeCount = 0;
 				state.p2.pushdown.push(PState::Charging);
-				state.p2.ammo = state.p2.ammo - cfg.altShotCost;
+				state.p2.ammo = state.p2.ammo - cfg->altShotCost;
 				break;
 			}
 		}
 		//WEAVE A DASH INTO ANOTHER
 		else if (state.p2.pushdown.top() == PState::Dashing &&
 			input.p2Input.atk == AttackInput::Dash &&
-			state.p2.stamina >= cfg.dashCost)
+			state.p2.stamina >= cfg->dashCost)
 		{
 			state.p2.dashCount = 0;
-			state.p2.dashVel = pickDashDir(v2::scalarMult(state.p2.dir, cfg.playerDashSpeed), input.p2Input.mov);
-			state.p2.stamina = state.p2.stamina - cfg.dashCost;
+			state.p2.dashVel = pickDashDir(v2::scalarMult(state.p2.dir, cfg->playerDashSpeed), input.p2Input.mov);
+			state.p2.stamina = state.p2.stamina - cfg->dashCost;
 		}
 
 		break;
