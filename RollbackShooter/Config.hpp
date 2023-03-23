@@ -11,6 +11,7 @@ struct Config
 	int16 staminaMax;
 	int16 dashCost;
 	num_det playerRadius;
+	num_det grazeRadius;
 	num_det projRadius;
 	num_det comboRadius;
 	num_det arenaRadius;

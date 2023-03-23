@@ -73,6 +73,60 @@ GameState initialState(Config cfg)
 	return state;
 }
 
+void altShot(GameState* state, Config cfg, Vec2 origin, Vec2 direction, playerid owner)
+{
+	Player* opposition;
+	if (owner == 1)	opposition = &state->p2; else opposition = &state->p1;
+	//PARRY
+	if (opposition->pushdown.top() == PState::Dashing &&
+		opposition->dashCount < cfg.dashPerfect &&
+		v2::closest(origin, direction, opposition->perfectPos) < cfg.playerRadius)
+	{
+		//right back at ya
+		origin = v2::add(v2::projection(v2::sub(opposition->perfectPos, origin), direction), origin);
+		direction = v2::scalarMult(direction, num_det{ -1 });
+		owner = opposition->id;
+		opposition->pushdown.push(PState::Hitstop);
+		opposition->hitstopCount = cfg.midHitstop;
+		if (owner == 1)	opposition = &state->p2; else opposition = &state->p1;
+	}
+	//DIRECT HIT OR GRAZE
+	num_det dist = v2::closest(origin, direction, opposition->pos);
+	if (dist < cfg.playerRadius)
+	{
+		damagePlayer(opposition, cfg, origin, 2);
+		if (owner == 1)	state->health2--; else state->health1--;
+	}
+	else if (dist < cfg.grazeRadius)
+	{
+		opposition->ammo = cfg.ammoMax;
+		opposition->stamina = cfg.staminaMax;
+	}
+	//COMBO
+	auto it = state->projs.begin();
+	while (it != state->projs.end())
+	{
+		if (v2::closest(origin, direction, it->pos) < cfg.projRadius)
+		{
+			if (v2::length(v2::sub(it->pos, state->p1.pos)) < (cfg.comboRadius + cfg.playerRadius))
+			{
+				damagePlayer(&state->p1, cfg, it->pos, 3);
+				state->health1--;
+			}
+			if (v2::length(v2::sub(it->pos, state->p2.pos)) < (cfg.comboRadius + cfg.playerRadius))
+			{
+				damagePlayer(&state->p2, cfg, it->pos, 3);
+				state->health2--;
+			}
+			state->projs.erase(it);
+		}
+		else
+		{
+			++it;
+		}
+	}
+}
+
 GameState simulate(GameState state, Config cfg, InputData input)
 {
 	state.frame++;
@@ -276,9 +330,16 @@ GameState simulate(GameState state, Config cfg, InputData input)
 		}
 
 		//ALT SHOT
-		//check parry
-		//check direct hit or graze
-		//check combo
+		if (state.p1.pushdown.top() == PState::Charging && state.p1.chargeCount >= cfg.chargeDuration)
+		{
+			state.p1.pushdown.pop();
+			altShot(&state, cfg, state.p1.pos, state.p1.dir, 1);
+		}
+		if (state.p2.pushdown.top() == PState::Charging && state.p2.chargeCount >= cfg.chargeDuration)
+		{
+			state.p2.pushdown.pop();
+			altShot(&state, cfg, state.p2.pos, state.p2.dir, 2);
+		}
 
 		//finally, act on players' attack if they can (not hitstopped)
 
