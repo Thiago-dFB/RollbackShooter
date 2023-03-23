@@ -147,7 +147,7 @@
     <ClInclude Include="Player.hpp" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="RBST.toml">
+    <None Include="RBST_config.toml">
       <DeploymentContent>true</DeploymentContent>
     </None>
   </ItemGroup>

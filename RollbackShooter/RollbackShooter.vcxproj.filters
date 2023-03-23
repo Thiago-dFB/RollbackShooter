@@ -31,7 +31,7 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <None Include="RBST.toml">
+    <None Include="RBST_config.toml">
       <Filter>Resource Files</Filter>
     </None>
   </ItemGroup>
