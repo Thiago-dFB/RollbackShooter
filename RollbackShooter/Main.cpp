@@ -45,10 +45,12 @@ struct GameState
 	Player p1;
 	int8 health1 = 0;
 	int8 rounds1 = 0;
+	bool p1DmgThisFrame = false;
 
 	Player p2;
 	int8 health2 = 0;
 	int8 rounds2 = 0;
+	bool p2DmgThisFrame = false;
 	
 	std::vector<Projectile> projs;
 };
@@ -73,6 +75,20 @@ GameState initialState(const Config* cfg)
 	return state;
 }
 
+void regDamage(GameState* state, playerid damaged)
+{
+	if (damaged == 1)
+	{
+		(state->health1)--;
+		state->p1DmgThisFrame = true;
+	}
+	else
+	{
+		(state->health2)--;
+		state->p2DmgThisFrame = true;
+	}
+}
+
 void altShot(GameState* state, const Config* cfg, Vec2 origin, Vec2 direction, playerid owner)
 {
 	Player* opposition;
@@ -92,10 +108,10 @@ void altShot(GameState* state, const Config* cfg, Vec2 origin, Vec2 direction, p
 	}
 	//DIRECT HIT OR GRAZE
 	num_det dist = v2::closest(origin, direction, opposition->pos);
-	if (dist < cfg->playerRadius)
+	if (!opposition->stunned && dist < cfg->playerRadius)
 	{
 		damagePlayer(opposition, cfg, origin, 2);
-		if (owner == 1)	(state->health2)--; else (state->health1)--;
+		if (owner == 1)	regDamage(state, 2); else regDamage(state, 1);
 	}
 	else if (dist < cfg->grazeRadius)
 	{
@@ -108,15 +124,15 @@ void altShot(GameState* state, const Config* cfg, Vec2 origin, Vec2 direction, p
 	{
 		if (v2::closest(origin, direction, it->pos) < cfg->projRadius)
 		{
-			if (v2::length(v2::sub(it->pos, state->p1.pos)) < (cfg->comboRadius + cfg->playerRadius))
+			if (!state->p1.stunned && v2::length(v2::sub(it->pos, state->p1.pos)) < (cfg->comboRadius + cfg->playerRadius))
 			{
 				damagePlayer(&(state->p1), cfg, it->pos, 3);
-				(state->health1)--;
+				regDamage(state, 1);
 			}
-			if (v2::length(v2::sub(it->pos, state->p2.pos)) < (cfg->comboRadius + cfg->playerRadius))
+			if (!state->p2.stunned && v2::length(v2::sub(it->pos, state->p2.pos)) < (cfg->comboRadius + cfg->playerRadius))
 			{
 				damagePlayer(&(state->p2), cfg, it->pos, 3);
-				(state->health2)--;
+				regDamage(state, 2);
 			}
 			state->projs.erase(it);
 		}
@@ -190,8 +206,13 @@ GameState simulate(GameState state, const Config* cfg, InputData input)
 			break;
 		}
 	case RoundPhase::Play:
+		state.p1DmgThisFrame = false;
+		state.p2DmgThisFrame = false;
+
 		//PLAYER 1
 		movePlayer(&(state.p1), cfg, input.p1Input);
+		state.p1.ammo = std::min(++state.p1.ammo, cfg->ammoMax);
+		state.p1.stamina = std::min(++state.p1.stamina, cfg->staminaMax);
 		switch (state.p1.pushdown.top())
 		{
 		case PState::Dashing:
@@ -214,6 +235,8 @@ GameState simulate(GameState state, const Config* cfg, InputData input)
 		}
 		//PLAYER 2
 		movePlayer(&(state.p2), cfg, input.p2Input);
+		state.p2.ammo = std::min(++state.p2.ammo, cfg->ammoMax);
+		state.p2.stamina = std::min(++state.p2.stamina, cfg->staminaMax);
 		switch (state.p2.pushdown.top())
 		{
 		case PState::Dashing:
@@ -257,10 +280,10 @@ GameState simulate(GameState state, const Config* cfg, InputData input)
 						state.p2.pushdown.push(PState::Hitstop);
 						state.p2.hitstopCount = cfg->weakHitstop;
 					}
-					else if (v2::length(v2::sub(it->pos, state.p2.pos)) < (cfg->playerRadius + cfg->projRadius))
+					else if (!state.p2.stunned && v2::length(v2::sub(it->pos, state.p2.pos)) < (cfg->playerRadius + cfg->projRadius))
 					{
 						damagePlayer(&(state.p2), cfg, it->pos, 1);
-						state.health2--;
+						regDamage(&state, 2);
 						state.projs.erase(it);
 						erased = true;
 					}
@@ -277,10 +300,10 @@ GameState simulate(GameState state, const Config* cfg, InputData input)
 						state.p1.pushdown.push(PState::Hitstop);
 						state.p1.hitstopCount = cfg->weakHitstop;
 					}
-					else if (v2::length(v2::sub(it->pos, state.p1.pos)) < (cfg->playerRadius + cfg->projRadius))
+					else if (!state.p1.stunned && v2::length(v2::sub(it->pos, state.p1.pos)) < (cfg->playerRadius + cfg->projRadius))
 					{
 						damagePlayer(&(state.p1), cfg, it->pos, 1);
-						state.health1--;
+						regDamage(&state, 1);
 						state.projs.erase(it);
 						erased = true;
 					}
@@ -298,7 +321,7 @@ GameState simulate(GameState state, const Config* cfg, InputData input)
 			if (state.p2.dashCount < cfg->dashPerfect && (v2::length(v2::sub(state.p1.pos, state.p2.perfectPos))) < (cfg->playerRadius + cfg->playerRadius))
 			{
 				damagePlayer(&(state.p1), cfg, state.p2.perfectPos, 2);
-				state.health1--;
+				regDamage(&state, 1);
 				state.p2.pushdown.push(PState::Hitstop);
 				state.p2.hitstopCount = cfg->midHitstop;
 			}
@@ -306,7 +329,7 @@ GameState simulate(GameState state, const Config* cfg, InputData input)
 			else if (state.p1.dashCount < cfg->dashPerfect && (v2::length(v2::sub(state.p2.pos, state.p1.perfectPos))) < (cfg->playerRadius + cfg->playerRadius))
 			{
 				damagePlayer(&(state.p2), cfg, state.p1.perfectPos, 2);
-				state.health2--;
+				regDamage(&state, 2);
 				state.p1.pushdown.push(PState::Hitstop);
 				state.p1.hitstopCount = cfg->midHitstop;
 			}
@@ -317,39 +340,39 @@ GameState simulate(GameState state, const Config* cfg, InputData input)
 				if (dashDiff > 0)
 				{
 					damagePlayer(&(state.p2), cfg, state.p1.pos, 2);
-					state.health2--;
+					regDamage(&state, 2);
 					state.p1.pushdown.push(PState::Hitstop);
 					state.p1.hitstopCount = cfg->midHitstop;
 				}
 				else if (dashDiff < 0)
 				{
 					damagePlayer(&(state.p1), cfg, state.p2.pos, 2);
-					state.health1--;
+					regDamage(&state, 1);
 					state.p2.pushdown.push(PState::Hitstop);
 					state.p2.hitstopCount = cfg->midHitstop;
 				}
 				else
 				{
 					damagePlayer(&(state.p1), cfg, state.p2.pos, 2);
-					state.health1--;
+					regDamage(&state, 1);
 					damagePlayer(&(state.p2), cfg, state.p1.pos, 2);
-					state.health2--;
+					regDamage(&state, 2);
 				}
 			}
 		}
 		//P1 HITS P2
-		else if (directColl && state.p1.pushdown.top() == PState::Dashing)
+		else if (directColl && !state.p2.stunned && state.p1.pushdown.top() == PState::Dashing)
 		{
 			damagePlayer(&(state.p2), cfg, state.p1.pos, 2);
-			state.health2--;
+			regDamage(&state, 2);
 			state.p1.pushdown.push(PState::Hitstop);
 			state.p1.hitstopCount = cfg->midHitstop;
 		}
 		//P2 HITS P1
-		else if (directColl && state.p2.pushdown.top() == PState::Dashing)
+		else if (directColl && !state.p1.stunned && state.p2.pushdown.top() == PState::Dashing)
 		{
 			damagePlayer(&(state.p1), cfg, state.p2.pos, 2);
-			state.health1--;
+			regDamage(&state, 1);
 			state.p2.pushdown.push(PState::Hitstop);
 			state.p2.hitstopCount = cfg->midHitstop;
 		}
@@ -366,7 +389,22 @@ GameState simulate(GameState state, const Config* cfg, InputData input)
 			altShot(&state, cfg, state.p2.pos, state.p2.dir, 2);
 		}
 
+		state.p1.stunned = state.p1.stunned || state.p1DmgThisFrame;
+		state.p2.stunned = state.p2.stunned || state.p2DmgThisFrame;
+
 		//PLAYER 1 ATTACKS
+		if (state.p1.stunned)
+		{
+			//break out of stun at the cost of a dash
+			if (input.p1Input.atk == AttackInput::Dash && !state.p1DmgThisFrame && state.p1.stamina >= cfg->dashCost)
+			{
+				state.p1.vel = pickDashDir(v2::scalarMult(state.p1.dir, cfg->playerDashSpeed), input.p1Input.mov);
+				state.p1.stamina = state.p1.stamina - cfg->dashCost;
+				state.p1.stunned = false;
+			}
+			//cancel your next move nevertheless
+			input.p1Input.atk == AttackInput::None;
+		}
 		if (state.p1.pushdown.top() == PState::Default)
 		{
 			switch (input.p1Input.atk)
@@ -375,6 +413,7 @@ GameState simulate(GameState state, const Config* cfg, InputData input)
 				if (state.p1.stamina < cfg->dashCost) break;
 				state.p1.dashCount = 0;
 				state.p1.dashVel = pickDashDir(v2::scalarMult(state.p1.dir, cfg->playerDashSpeed), input.p1Input.mov);
+				state.p1.perfectPos = state.p1.pos;
 				state.p1.pushdown.push(PState::Dashing);
 				state.p1.stamina = state.p1.stamina - cfg->dashCost;
 				break;
@@ -398,10 +437,23 @@ GameState simulate(GameState state, const Config* cfg, InputData input)
 		{
 			state.p1.dashCount = 0;
 			state.p1.dashVel = pickDashDir(v2::scalarMult(state.p1.dir, cfg->playerDashSpeed), input.p1Input.mov);
+			state.p1.perfectPos = state.p1.pos;
 			state.p1.stamina = state.p1.stamina - cfg->dashCost;
 		}
 
 		//PLAYER 2 ATTACKS
+		if (state.p2.stunned)
+		{
+			//break out of stun at the cost of a dash
+			if (input.p2Input.atk == AttackInput::Dash && !state.p2DmgThisFrame && state.p2.stamina >= cfg->dashCost)
+			{
+				state.p2.vel = pickDashDir(v2::scalarMult(state.p2.dir, cfg->playerDashSpeed), input.p2Input.mov);
+				state.p2.stamina = state.p2.stamina - cfg->dashCost;
+				state.p2.stunned = false;
+			}
+			//cancel your next move nevertheless
+			input.p2Input.atk == AttackInput::None;
+		}
 		if (state.p2.pushdown.top() == PState::Default)
 		{
 			switch (input.p2Input.atk)
@@ -410,6 +462,7 @@ GameState simulate(GameState state, const Config* cfg, InputData input)
 				if (state.p2.stamina < cfg->dashCost) break;
 				state.p2.dashCount = 0;
 				state.p2.dashVel = pickDashDir(v2::scalarMult(state.p2.dir, cfg->playerDashSpeed), input.p2Input.mov);
+				state.p2.perfectPos = state.p2.pos;
 				state.p2.pushdown.push(PState::Dashing);
 				state.p2.stamina = state.p2.stamina - cfg->dashCost;
 				break;
@@ -433,6 +486,7 @@ GameState simulate(GameState state, const Config* cfg, InputData input)
 		{
 			state.p2.dashCount = 0;
 			state.p2.dashVel = pickDashDir(v2::scalarMult(state.p2.dir, cfg->playerDashSpeed), input.p2Input.mov);
+			state.p2.perfectPos = state.p2.pos;
 			state.p2.stamina = state.p2.stamina - cfg->dashCost;
 		}
 

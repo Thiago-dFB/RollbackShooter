@@ -62,7 +62,7 @@ struct Player
 	int16 dashCount = 0;
 	//other countdowns
 	int16 hitstopCount = 0;
-	int16 stunCount = 0;
+	bool stunned = false;
 };
 
 void respawnPlayer(Player* player, const Config* cfg)
@@ -86,7 +86,7 @@ void respawnPlayer(Player* player, const Config* cfg)
 	player->dashVel = v2::zero();
 	player->dashCount = 0;
 	player->hitstopCount = 0;
-	player->stunCount = 0;
+	player->stunned = false;
 
 	while (!player->pushdown.empty())
 	{
@@ -107,6 +107,8 @@ void movePlayer(Player* player, const Config* cfg, PlayerInput input)
 		//MOUSE MOVEMENT
 		player->dir = v2::rotate(player->dir, input.mouse);
 
+		if (player->stunned) input.mov = MoveInput::Neutral;
+
 		//NORMAL WALKING MOVEMENT - ACCELERATION
 		num_det speed = v2::length(player->vel);
 		Vec2 impulse = v2::scalarMult(player->dir, cfg->playerWalkAccel);
@@ -117,6 +119,8 @@ void movePlayer(Player* player, const Config* cfg, PlayerInput input)
 			if (speed < cfg->playerWalkFric)
 			{
 				player->vel = v2::zero();
+				//player naturally breaks out of stun when fully stopped
+				player->stunned = false;
 			}
 			else
 			{
