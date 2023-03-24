@@ -21,16 +21,16 @@ dashCost       = 50
 dashPhase      = 10     #frames for normal movement to completely phase into dash movement
 dashPerfect    = 15     #frames for perfect evade window
 dashDuration   = 60     #dash length in frames
-chargeDuration = 60     #charge length in frames
+chargeDuration = 45     #charge length in frames
 
 [PlayerSpeed]
-playerWalkSpeed = "0.8"
-playerWalkAccel = "0.4"
-playerWalkFric  = "0.6"
-playerDashSpeed = "1.2"
+playerWalkSpeed = "4"
+playerWalkAccel = "4.5"
+playerWalkFric  = "2.8"
+playerDashSpeed = "12"
 
 [ProjSpeed]
-projSpeed = "0.6"
+projSpeed = "10"
 projCounterMultiply = "1.2"
 
 [Radius]
