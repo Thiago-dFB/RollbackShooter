@@ -12,7 +12,7 @@
 #include "Player.hpp"
 
 const int PREGAME_COUNTDOWN = 180;
-const int ROUNDTIMER_COUNTDOWN = 120 * 60;
+const int ROUNDTIMER_COUNTDOWN = 5999;
 const int ROUNDEND_COUNTDOWN = 300;
 const size_t MAX_PROJECTILES = 32;
 
