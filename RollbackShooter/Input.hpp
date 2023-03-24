@@ -40,10 +40,10 @@ struct PlayerInput
 	num_det mouse{ 0 };
 };
 
-struct PlayerInputZipped
+struct InputData
 {
-	int8 movatk;
-	int32_t mouseRaw;
+	PlayerInput p1Input;
+	PlayerInput p2Input;
 };
 
 struct InputBindings
