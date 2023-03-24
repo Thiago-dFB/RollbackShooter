@@ -12,13 +12,23 @@
 #include "Config.hpp"
 #include "Player.hpp"
 
+const int screenWidth = 800;
+const int screenHeight = 600;
+
 enum LaunchMode
 {
-	Home,
-	Dummy,
-	Replay,
-	Listen,
-	Connect
+	Home=0,
+	Dummy=1,
+	Replay=2,
+	Listen=3,
+	Connect=4
+};
+
+enum POV
+{
+	Spectator=0,
+	Player1=1,
+	Player2=2
 };
 
 inline Vector3 fromDetVec2(Vec2 vec, float height=0.0f)
@@ -31,23 +41,66 @@ inline float fromDetNum(num_det num)
 	return static_cast<float>(num);
 }
 
+void setCamera(Camera3D* cam, Vec2* lazyCam, const GameState* state, POV pov)
+{
+	num_det camBack{ -5 };
+	float camHeight = 4;
+	num_det tgtFront{ 6 };
+	float tgtHeight = 0;
+	num_det laziness{ 0.2 };
+	float specHeight = 6;
+
+	switch (pov)
+	{
+	case Player1:
+		cam->position = fromDetVec2(v2::add(state->p1.pos, v2::scalarMult(state->p1.dir, camBack)), camHeight);
+		cam->target = fromDetVec2(v2::add(state->p1.pos, v2::scalarMult(state->p1.dir, tgtFront)), tgtHeight);
+		break;
+	case Player2:
+		cam->position = fromDetVec2(v2::add(state->p2.pos, v2::scalarMult(state->p2.dir, camBack)), camHeight);
+		cam->target = fromDetVec2(v2::add(state->p2.pos, v2::scalarMult(state->p2.dir, tgtFront)), tgtHeight);
+		break;
+	case Spectator:
+		Vec2 midDist = v2::scalarDiv(v2::sub(state->p1.pos, state->p2.pos), num_det{2});
+		Vec2 actionCenter = v2::add(state->p2.pos, midDist);
+		Vec2 standBack = v2::rotate(v2::scalarMult(midDist, num_det{1.5}), -camBack.half_pi());
+		*lazyCam = v2::lerp(*lazyCam, v2::add(actionCenter, standBack), laziness);
+		cam->position = fromDetVec2(*lazyCam, specHeight);
+		cam->target = fromDetVec2(actionCenter, tgtHeight);
+		break;
+	}
+}
+
+void drawBars(const Player* player, const Config* cfg)
+{
+	DrawRectangle((screenWidth / 2) - 150, screenHeight - 60, (300 * player->ammo) / cfg->ammoMax, 20, GREEN);
+	for (int i = 1; i <= (cfg->ammoMax / cfg->shotCost); i++)
+	{
+		int lineX = (screenWidth / 2) - 150 + (300 * i * cfg->shotCost) / cfg->ammoMax;
+		DrawLine(lineX, screenHeight - 65, lineX, screenHeight - 25, BLACK);
+	}
+	DrawRectangle((screenWidth / 2) - 150, screenHeight - 30, (300 * player->stamina) / cfg->staminaMax, 20, YELLOW);
+	for (int i = 1; i <= (cfg->staminaMax / cfg->dashCost); i++)
+	{
+		int lineX = (screenWidth / 2) - 150 + (300 * i * cfg->dashCost) / cfg->staminaMax;
+		DrawLine(lineX, screenHeight - 35, lineX, screenHeight - 5, BLACK);
+	}
+}
+
 int main(int argc, char* argv[])
 {
-	const int screenWidth = 800;
-	const int screenHeight = 600;
-
-	LaunchMode launch;
+	LaunchMode launch = Home;
+	//TODO if I ever implement scene change this goes to a function just so it can leave scope naturally
 	auto launchOpt = toml::parse_file("RBST_launch.toml");
-	std::string mode = launchOpt["launchMode"].value_or("");
-	if (mode.compare("home"))
-		launch = Home;
-	else if (mode.compare("dummy"))
+	std::string mode = launchOpt["launchMode"].value_or("home");
+	std::cout << mode << std::endl;
+	if (mode.compare("dummy") == 0)
 		launch = Dummy;
-	else if (mode.compare("replay"))
+	else if (mode.compare("replay") == 0)
 		launch = Replay;
-	else if (mode.compare("listen"))
+	else if (mode.compare("listen") == 0)
 		launch = Listen;
-	else if (mode.compare("connect"))
+	else if (mode.compare("connect") == 0)
 		launch = Connect;
 
 	InitWindow(screenWidth, screenHeight, "RBST");
@@ -61,11 +114,8 @@ int main(int argc, char* argv[])
 	cam.up = Vector3{ 0.0f, 1.0f, 0.0f };
 	cam.fovy = 70.0f;
 	cam.projection = CAMERA_PERSPECTIVE;
-
-	num_det camBack{ -5 };
-	float camHeight = 4;
-	num_det tgtFront{ 6 };
-	float tgtHeight = 0;
+	Vec2 lazyCam = v2::zero();
+	POV replayPOV = Spectator;
 
 	std::ostringstream gameInfoOSS;
 	double worstFrame = 0;
@@ -87,12 +137,16 @@ int main(int argc, char* argv[])
 		double after = GetTime();
 		worstFrame = std::max(worstFrame, after - before);
 
-		//secondary simulation (holds its own state)
+		//secondary simulation (stateful)
 		// probably not doing it here lol
 
-		//secondary simulation (doesn't hold its own state)
-		cam.position = fromDetVec2(v2::add(state.p1.pos, v2::scalarMult(state.p1.dir, camBack)), camHeight);
-		cam.target = fromDetVec2(v2::add(state.p1.pos, v2::scalarMult(state.p1.dir, tgtFront)), tgtHeight);
+		//secondary simulation (stateless)
+		if (launch == Dummy || launch == Listen)
+			setCamera(&cam, &lazyCam, &state, Player1);
+		else if (launch == Connect)
+			setCamera(&cam, &lazyCam, &state, Player2);
+		else
+			setCamera(&cam, &lazyCam, &state, replayPOV);
 
 		//presentation
 
@@ -101,6 +155,7 @@ int main(int argc, char* argv[])
 		ClearBackground(RAYWHITE);
 
 		BeginMode3D(cam);
+		{
 			DrawCylinderWires(
 				fromDetVec2(state.p1.pos),
 				fromDetNum(cfg.playerRadius),
@@ -140,31 +195,24 @@ int main(int argc, char* argv[])
 				}
 			}
 			DrawCylinderWires(
-				Vector3{0.0f, 0.0f, 0.0f},
+				Vector3{ 0.0f, 0.0f, 0.0f },
 				fromDetNum(cfg.arenaRadius + cfg.playerRadius),
 				fromDetNum(cfg.arenaRadius),
 				-.5f, 50, BLACK);
-			DrawGrid(10, static_cast<float>(cfg.arenaRadius)/10.0f);
+			DrawGrid(10, static_cast<float>(cfg.arenaRadius) / 10.0f);
+		}
 		EndMode3D();
 
-		DrawRectangle((screenWidth / 2) - 150, screenHeight - 60, (300 * state.p1.ammo) / cfg.ammoMax, 20, GREEN);
-		for (int i = 1; i <= (cfg.ammoMax / cfg.shotCost); i++)
-		{
-			int lineX = (screenWidth / 2) - 150 + (300 * i * cfg.shotCost) / cfg.ammoMax;
-			DrawLine(lineX, screenHeight - 65, lineX, screenHeight - 25, BLACK);
-		}
-		DrawRectangle((screenWidth / 2) - 150, screenHeight - 30, (300 * state.p1.stamina) / cfg.staminaMax, 20, YELLOW);
-		for (int i = 1; i <= (cfg.staminaMax / cfg.dashCost); i++)
-		{
-			int lineX = (screenWidth / 2) - 150 + (300 * i * cfg.dashCost) / cfg.staminaMax;
-			DrawLine(lineX, screenHeight - 35, lineX, screenHeight - 5, BLACK);
-		}
+		if (launch == Dummy || launch == Listen)
+			drawBars(&state.p1, &cfg);
+		else if (launch == Connect)
+			drawBars(&state.p2, &cfg);
 
 		int currentFps = GetFPS();
 		gameInfoOSS.str("");
 		gameInfoOSS << "FPS: " << currentFps << std::endl;
-		gameInfoOSS << "Simulation cost: " << (after - before) * 1000 << " ms" << std::endl;
-		gameInfoOSS << "Worst frame yet: " << worstFrame * 1000 << " ms" << std::endl;
+		gameInfoOSS << "Sim cost: " << (after - before) * 1000 << " ms" << std::endl;
+		gameInfoOSS << "Worst frame: " << worstFrame * 1000 << " ms" << std::endl;
 		gameInfoOSS << "P1 HP: " << state.health1 << "; ";
 		gameInfoOSS << "P2 HP: " << state.health2 << std::endl;
 		gameInfoOSS << "Round Phase: " << std::to_string(state.phase) << "; Round Countdown: " << (state.roundCountdown / 60) << "." << (state.roundCountdown % 60) << std::endl;

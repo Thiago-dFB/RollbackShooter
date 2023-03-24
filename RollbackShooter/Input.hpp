@@ -49,16 +49,16 @@ struct InputData
 struct InputBindings
 {
 	num_det sensitivity{ 0 };
-	int forward;
-	int back;
-	int left;
-	int right;
-	int shotKey;
-	int shotBtn;
-	int altShotKey;
-	int altShotBtn;
-	int dashKey;
-	int dashBtn;
+	int forward = 0;
+	int back = 0;
+	int left = 0;
+	int right = 0;
+	int shotKey = 0;
+	int shotBtn = 6;
+	int altShotKey = 0;
+	int altShotBtn = 6;
+	int dashKey = 0;
+	int dashBtn = 6;
 };
 
 InputBindings readTOMLForBind()
@@ -106,6 +106,12 @@ PlayerInput processInput(const InputBindings* bind)
 	if (IsKeyPressed(bind->dashKey) || IsMouseButtonPressed(bind->dashBtn)) input.atk = Dash;
 
 	return input;
+}
+
+PlayerInput predictInput(PlayerInput prevInput)
+{
+	prevInput.atk = None;
+	return prevInput; //simple as that lul
 }
 
 std::string inputToString(PlayerInput input)
