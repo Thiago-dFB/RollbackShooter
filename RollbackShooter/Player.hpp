@@ -5,6 +5,7 @@
 #include <etl/stack.h>
 
 #include "Math.hpp"
+#include "Input.hpp"
 #include "Config.hpp"
 
 using playerid = std::uint8_t;
@@ -16,35 +17,6 @@ enum PState
 	Charging,
 	Dashing,
 	Hitstop
-};
-
-enum AttackInput
-{
-	None = 0,
-	Shot = 1,
-	AltShot = 2,
-	Dash = 3
-};
-
-enum MoveInput
-{
-	BackLeft = 1,
-	Back = 2,
-	BackRight = 3,
-	Left = 4,
-	Neutral = 5,
-	Right = 6,
-	ForLeft = 7,
-	Forward = 8,
-	ForRight = 9
-};
-
-struct PlayerInput
-{
-	AttackInput atk = None;
-	MoveInput mov = Neutral;
-	//horizontal mouse movement (already in radians)
-	num_det mouse{ 0 };
 };
 
 struct Player

@@ -1,0 +1,13 @@
+# home     = home screen (plays a blurred replay in the background)
+# dummy    = match against an inert P2 to finetune your controls
+# replay   = plays a replay
+# listen   = wait for someone to connect for a networked match
+# connect  = connect to <listenerAddress>:<port>
+launchMode = "home"
+
+[Network]
+listenerAddress = "127.0.0.1" #naturally, change this to IP of listener
+port = 8001
+
+[Replay]
+replayFile = "demo.rbst"

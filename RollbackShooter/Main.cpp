@@ -503,6 +503,7 @@ int main(int argc, char* argv[])
 
 	InitWindow(screenWidth, screenHeight, "Game");
 	SetTargetFPS(60);
+	SetWindowState(FLAG_WINDOW_ALWAYS_RUN);
 
 	while (!WindowShouldClose())
 	{
