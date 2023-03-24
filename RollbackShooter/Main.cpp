@@ -496,6 +496,16 @@ GameState simulate(GameState state, const Config* cfg, InputData input)
 	return state;
 }
 
+inline Vector3 fromDetVec2(Vec2 vec)
+{
+	return Vector3{ static_cast<float>(vec.x), 0.0f, static_cast<float>(vec.y) };
+}
+
+inline float fromDetNum(num_det num)
+{
+	return static_cast<float>(num);
+}
+
 int main(int argc, char* argv[])
 {
 	const int screenWidth = 800;
@@ -504,12 +514,38 @@ int main(int argc, char* argv[])
 	InitWindow(screenWidth, screenHeight, "Game");
 	SetTargetFPS(60);
 	SetWindowState(FLAG_WINDOW_ALWAYS_RUN);
+	DisableCursor();
+
+	Camera3D cam = { 0 };
+	cam.position = Vector3{ 0.0f, 15.0f, 15.0f };  // Camera position
+	cam.target = Vector3{ 0.0f, 0.0f, 0.0f };      // Camera looking at point
+	cam.up = Vector3{ 0.0f, 1.0f, 0.0f };          // Camera up vector (rotation towards target)
+	cam.fovy = 45.0f;                                // Camera field-of-view Y
+	cam.projection = CAMERA_PERSPECTIVE;             // Camera mode type
+
+	std::ostringstream gameInfoOSS;
+
+	const InputBindings bind = readTOMLForBind();
+	const Config cfg = readTOMLForCfg();
+	GameState state = initialState(&cfg);
 
 	while (!WindowShouldClose())
 	{
 		//process input
+		PlayerInput p1input = processInput(&bind);
+		PlayerInput p2Dummy{ None, Neutral, num_det {0} };
+		InputData input{ p1input,p2Dummy };
 
 		//simulation
+		double before = GetTime();
+		state = simulate(state, &cfg, input);
+		double after = GetTime();
+
+		//secondary simulation (holds its own state)
+		// probably not doing it here lol
+
+		//secondary simulation (doesn't hold its own state)
+
 
 		//presentation
 
@@ -517,10 +553,59 @@ int main(int argc, char* argv[])
 
 		ClearBackground(RAYWHITE);
 
+		BeginMode3D(cam);
+			DrawCylinderWires(
+				fromDetVec2(state.p1.pos),
+				fromDetNum(cfg.playerRadius),
+				fromDetNum(cfg.playerRadius),
+				1.0f, 10, RED);
+			DrawCylinderWires(
+				fromDetVec2(state.p2.pos),
+				fromDetNum(cfg.playerRadius),
+				fromDetNum(cfg.playerRadius),
+				1.0f, 10, BLUE);
+			DrawSphereWires(
+				fromDetVec2(v2::add(state.p1.pos, state.p1.dir)),
+				.1f, 5, 5, RED);
+			for (auto it = state.projs.begin(); it != state.projs.end(); ++it)
+			{
+				switch (it->owner)
+				{
+				case 1:
+					DrawCylinderWires(
+						fromDetVec2(it->pos),
+						fromDetNum(cfg.projRadius),
+						fromDetNum(cfg.projRadius),
+						.5f, 10, RED);
+					break;
+				case 2:
+					DrawCylinderWires(
+						fromDetVec2(it->pos),
+						fromDetNum(cfg.projRadius),
+						fromDetNum(cfg.projRadius),
+						.5f, 10, BLUE);
+					break;
+				}
+			}
+			DrawCylinderWires(
+				Vector3{0.0f, 0.0f, 0.0f},
+				fromDetNum(cfg.arenaRadius),
+				fromDetNum(cfg.arenaRadius),
+				.1f, 10, BLACK);
+			DrawGrid(10, static_cast<float>(cfg.arenaRadius)/10.0f);
+		EndMode3D();
+
 		int currentFps = GetFPS();
-		std::string topLeftText = "FPS: " + std::to_string(currentFps);
-		DrawText(topLeftText.c_str(), 5, 5, 20, GRAY);
+		gameInfoOSS.str("");
+		gameInfoOSS << "FPS: " << currentFps << std::endl;
+		gameInfoOSS << "Player Movement: " << p1input.mov << "; ";
+		gameInfoOSS << "Player Attack: " << p1input.atk << std::endl;
+		gameInfoOSS << "Player distance from center: " << v2::length(state.p1.pos) << std::endl;
+		gameInfoOSS << "Simulation cost: " << (after - before)*1000 << " ms" << std::endl;
+		DrawText(gameInfoOSS.str().c_str(), 5, 5, 20, GRAY);
 
 		EndDrawing();
 	}
+
+	CloseWindow();
 }

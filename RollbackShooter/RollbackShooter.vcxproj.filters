@@ -29,9 +29,18 @@
     <ClInclude Include="Config.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Input.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="RBST_config.toml">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="RBST_controls.toml">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="RBST_launch.toml">
       <Filter>Resource Files</Filter>
     </None>
   </ItemGroup>

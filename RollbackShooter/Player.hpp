@@ -72,6 +72,9 @@ void respawnPlayer(Player* player, const Config* cfg)
 
 void movePlayer(Player* player, const Config* cfg, PlayerInput input)
 {
+	num_det speed = v2::length(player->vel);
+	Vec2 impulse = v2::scalarMult(player->dir, cfg->playerWalkAccel);
+	num_det quarter_pi = speed.pi() / 4;
 	switch (player->pushdown.top())
 	{
 	case PState::Standby:
@@ -85,15 +88,14 @@ void movePlayer(Player* player, const Config* cfg, PlayerInput input)
 		if (player->stunned) input.mov = MoveInput::Neutral;
 
 		//NORMAL WALKING MOVEMENT - ACCELERATION
-		num_det speed = v2::length(player->vel);
-		Vec2 impulse = v2::scalarMult(player->dir, cfg->playerWalkAccel);
-		num_det quarter_pi = speed.pi() / 4;
+		
 		switch (input.mov)
 		{
 		case MoveInput::Neutral:
 			if (speed < cfg->playerWalkFric)
 			{
 				player->vel = v2::zero();
+				impulse = v2::zero();
 				//player naturally breaks out of stun when fully stopped
 				player->stunned = false;
 			}
@@ -104,25 +106,25 @@ void movePlayer(Player* player, const Config* cfg, PlayerInput input)
 			}
 			break;
 		case MoveInput::ForLeft:
-			impulse = v2::rotate(impulse, quarter_pi);
+			impulse = v2::rotate(impulse, -quarter_pi);
 			break;
 		case MoveInput::Left:
-			impulse = v2::rotate(impulse, speed.half_pi());
+			impulse = v2::rotate(impulse, -speed.half_pi());
 			break;
 		case MoveInput::BackLeft:
-			impulse = v2::rotate(impulse, speed.pi() - quarter_pi);
+			impulse = v2::rotate(impulse, speed.pi() + quarter_pi);
 			break;
 		case MoveInput::Back:
 			impulse = v2::scalarMult(impulse, num_det{ -1 });
 			break;
 		case MoveInput::BackRight:
-			impulse = v2::rotate(impulse, speed.pi() + quarter_pi);
+			impulse = v2::rotate(impulse, speed.pi() - quarter_pi);
 			break;
 		case MoveInput::Right:
-			impulse = v2::rotate(impulse, -speed.half_pi());
+			impulse = v2::rotate(impulse, speed.half_pi());
 			break;
 		case MoveInput::ForRight:
-			impulse = v2::rotate(impulse, -quarter_pi);
+			impulse = v2::rotate(impulse, quarter_pi);
 			break;
 		}
 		//if player is backpedaling, turn directly opposite force into friction

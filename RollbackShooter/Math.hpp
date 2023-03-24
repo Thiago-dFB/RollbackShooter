@@ -5,7 +5,7 @@
 #include <fpm/fixed.hpp>
 #include <fpm/math.hpp>
 
-using num_det = fpm::fixed<std::int32_t, std::int64_t, 24>;
+using num_det = fpm::fixed<std::int32_t, std::int64_t, 16>;
 using int8 = std::int8_t;
 using int16 = std::int16_t;
 
@@ -77,15 +77,17 @@ namespace v2
 		return fpm::sqrt((v.x * v.x) + (v.y * v.y));
 	}
 
-	inline Vec2 normalize(Vec2 v)
+	Vec2 normalize(Vec2 v)
 	{
-		return equal(v, zero()) ? v : scalarDiv(v, length(v));
+		num_det len = length(v);
+		return (len == num_det{ 0 }) ? zero() : scalarDiv(v, len);
 	}
 
 	//if you want to multiply the normal by a value
-	inline Vec2 normalizeMult(Vec2 v, num_det n)
+	Vec2 normalizeMult(Vec2 v, num_det n)
 	{
-		return equal(v, zero()) ? v : scalarMult(v, n / length(v));
+		num_det len = length(v);
+		return (len == num_det{ 0 }) ? zero() : scalarMult(v, n / len);
 	}
 
 	inline Vec2 lerp(Vec2 zero, Vec2 one, num_det alpha)

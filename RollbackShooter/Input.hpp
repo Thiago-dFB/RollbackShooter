@@ -91,7 +91,7 @@ PlayerInput processInput(const InputBindings* bind)
 	PlayerInput input;
 	
 	//TODO flip this value if mouselook is inverted
-	input.mouse = bind->sensitivity * num_det{ GetMouseDelta().x };
+	input.mouse = IsWindowFocused() ? bind->sensitivity * num_det{ DEG2RAD * GetMouseDelta().x } : num_det{0};
 
 	int8 direction = 5;
 	if (IsKeyDown(bind->forward)) direction = direction + 3;
