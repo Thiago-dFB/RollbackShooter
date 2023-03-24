@@ -2,6 +2,7 @@
 #define RBST_INPUT_HPP
 
 #include <istream>
+#include <ostream>
 
 //TOML++
 #include <toml++/toml.h>
@@ -123,6 +124,55 @@ PlayerInput stringToInput(std::string str)
 	input.mov = static_cast<MoveInput>(std::stoi(str.substr(3, 1)));
 	size_t delim = str.find(";");
 	input.mouse.from_raw_value(std::stoi(str.substr(5, delim - 5)));
+	return input;
+}
+
+void putInput(std::ostream* os, PlayerInput input)
+{
+	char* buffer = new char[5];
+	
+	//0mmmmaa
+	buffer[0] = (static_cast<char>(input.mov) << 2) | static_cast<char>(input.atk);
+
+	//never let me cook again
+	int32_t mask = 0xff;
+	int32_t raw = input.mouse.raw_value();
+	buffer[4] = raw & mask;
+	raw = raw >> 8;
+	buffer[3] = raw & mask;
+	raw = raw >> 8;
+	buffer[2] = raw & mask;
+	raw = raw >> 8;
+	buffer[1] = raw & mask;
+
+	os->write(buffer, 5);
+}
+
+PlayerInput getInput(std::istream* is)
+{
+	PlayerInput input;
+	
+	char* buffer = new char[5];
+	is->read(buffer, 5);
+
+	//0mmmmaa
+	char movAtk = buffer[0];
+	char movMask = 0b0111100;
+	char atkMask = 0b0000011;
+	input.atk = static_cast<AttackInput>(movAtk & atkMask);
+	input.mov = static_cast<MoveInput>((movAtk & movMask) >> 2);
+
+	//seriously, never let me cook again
+	int32_t raw = 0;
+	raw = raw | buffer[1];
+	raw = raw << 8;
+	raw = raw | buffer[2];
+	raw = raw << 8;
+	raw = raw | buffer[3];
+	raw = raw << 8;
+	raw = raw | buffer[4];
+	input.mouse.from_raw_value(raw);
+
 	return input;
 }
 
