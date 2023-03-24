@@ -150,19 +150,19 @@ Vec2 pickDashDir(Vec2 front, MoveInput mov)
 	switch (mov)
 	{
 	case MoveInput::ForLeft:
-		return v2::rotate(front, quarter_pi);
+		return v2::rotate(front, -quarter_pi);
 	case MoveInput::Left:
-		return v2::rotate(front, num.half_pi());
+		return v2::rotate(front, -num.half_pi());
 	case MoveInput::BackLeft:
-		return v2::rotate(front, num.pi() - quarter_pi);
+		return v2::rotate(front, num.pi() + quarter_pi);
 	case MoveInput::Back:
 		return v2::scalarMult(front, num_det{ -1 });
 	case MoveInput::BackRight:
-		return v2::rotate(front, num.pi() + quarter_pi);
+		return v2::rotate(front, num.pi() - quarter_pi);
 	case MoveInput::Right:
-		return v2::rotate(front, -num.half_pi());
+		return v2::rotate(front, num.half_pi());
 	case MoveInput::ForRight:
-		return v2::rotate(front, -quarter_pi);
+		return v2::rotate(front, quarter_pi);
 	default:
 		return front;
 	}
@@ -205,6 +205,8 @@ GameState simulate(GameState state, const Config* cfg, InputData input)
 		{
 			break;
 		}
+		input.p1Input = PlayerInput{};
+		input.p2Input = PlayerInput{};
 	case RoundPhase::Play:
 		state.p1DmgThisFrame = false;
 		state.p2DmgThisFrame = false;
@@ -398,7 +400,7 @@ GameState simulate(GameState state, const Config* cfg, InputData input)
 			//break out of stun at the cost of a dash
 			if (input.p1Input.atk == AttackInput::Dash && !state.p1DmgThisFrame && state.p1.stamina >= cfg->dashCost)
 			{
-				state.p1.vel = pickDashDir(v2::scalarMult(state.p1.dir, cfg->playerDashSpeed), input.p1Input.mov);
+				state.p1.vel = v2::scalarMult(pickDashDir(state.p1.dir, input.p1Input.mov), cfg->playerDashSpeed);
 				state.p1.stamina = state.p1.stamina - cfg->dashCost;
 				state.p1.stunned = false;
 			}
@@ -412,7 +414,7 @@ GameState simulate(GameState state, const Config* cfg, InputData input)
 			case AttackInput::Dash:
 				if (state.p1.stamina < cfg->dashCost) break;
 				state.p1.dashCount = 0;
-				state.p1.dashVel = pickDashDir(v2::scalarMult(state.p1.dir, cfg->playerDashSpeed), input.p1Input.mov);
+				state.p1.dashVel = v2::scalarMult(pickDashDir(state.p1.dir, input.p1Input.mov), cfg->playerDashSpeed);
 				state.p1.perfectPos = state.p1.pos;
 				state.p1.pushdown.push(PState::Dashing);
 				state.p1.stamina = state.p1.stamina - cfg->dashCost;
@@ -436,7 +438,7 @@ GameState simulate(GameState state, const Config* cfg, InputData input)
 			state.p1.stamina >= cfg->dashCost)
 		{
 			state.p1.dashCount = 0;
-			state.p1.dashVel = pickDashDir(v2::scalarMult(state.p1.dir, cfg->playerDashSpeed), input.p1Input.mov);
+			state.p1.dashVel = v2::scalarMult(pickDashDir(state.p1.dir, input.p1Input.mov), cfg->playerDashSpeed);
 			state.p1.perfectPos = state.p1.pos;
 			state.p1.stamina = state.p1.stamina - cfg->dashCost;
 		}
@@ -447,7 +449,7 @@ GameState simulate(GameState state, const Config* cfg, InputData input)
 			//break out of stun at the cost of a dash
 			if (input.p2Input.atk == AttackInput::Dash && !state.p2DmgThisFrame && state.p2.stamina >= cfg->dashCost)
 			{
-				state.p2.vel = pickDashDir(v2::scalarMult(state.p2.dir, cfg->playerDashSpeed), input.p2Input.mov);
+				state.p2.vel = v2::scalarMult(pickDashDir(state.p1.dir, input.p1Input.mov), cfg->playerDashSpeed);
 				state.p2.stamina = state.p2.stamina - cfg->dashCost;
 				state.p2.stunned = false;
 			}
@@ -461,7 +463,7 @@ GameState simulate(GameState state, const Config* cfg, InputData input)
 			case AttackInput::Dash:
 				if (state.p2.stamina < cfg->dashCost) break;
 				state.p2.dashCount = 0;
-				state.p2.dashVel = pickDashDir(v2::scalarMult(state.p2.dir, cfg->playerDashSpeed), input.p2Input.mov);
+				state.p2.dashVel = v2::scalarMult(pickDashDir(state.p1.dir, input.p1Input.mov), cfg->playerDashSpeed);
 				state.p2.perfectPos = state.p2.pos;
 				state.p2.pushdown.push(PState::Dashing);
 				state.p2.stamina = state.p2.stamina - cfg->dashCost;
@@ -485,7 +487,7 @@ GameState simulate(GameState state, const Config* cfg, InputData input)
 			state.p2.stamina >= cfg->dashCost)
 		{
 			state.p2.dashCount = 0;
-			state.p2.dashVel = pickDashDir(v2::scalarMult(state.p2.dir, cfg->playerDashSpeed), input.p2Input.mov);
+			state.p2.dashVel = v2::scalarMult(pickDashDir(state.p1.dir, input.p1Input.mov), cfg->playerDashSpeed);
 			state.p2.perfectPos = state.p2.pos;
 			state.p2.stamina = state.p2.stamina - cfg->dashCost;
 		}
@@ -581,11 +583,19 @@ int main(int argc, char* argv[])
 				fromDetNum(cfg.playerRadius),
 				fromDetNum(cfg.playerRadius),
 				1.0f, 10, RED);
+			if (state.p1.pushdown.top() == PState::Charging)
+			{
+				DrawRay(Ray{ fromDetVec2(state.p1.pos), fromDetVec2(state.p1.dir) }, RED);
+			}
 			DrawCylinderWires(
 				fromDetVec2(state.p2.pos),
 				fromDetNum(cfg.playerRadius),
 				fromDetNum(cfg.playerRadius),
 				1.0f, 10, BLUE);
+			if (state.p2.pushdown.top() == PState::Charging)
+			{
+				DrawRay(Ray{ fromDetVec2(state.p2.pos), fromDetVec2(state.p2.dir) }, BLUE);
+			}
 			for (auto it = state.projs.begin(); it != state.projs.end(); ++it)
 			{
 				switch (it->owner)
@@ -613,6 +623,19 @@ int main(int argc, char* argv[])
 				.1f, 10, BLACK);
 			DrawGrid(10, static_cast<float>(cfg.arenaRadius)/10.0f);
 		EndMode3D();
+
+		DrawRectangle((screenWidth / 2) - 150, screenHeight - 60, (300 * state.p1.ammo) / cfg.ammoMax, 20, GREEN);
+		for (int i = 1; i <= (cfg.ammoMax / cfg.shotCost); i++)
+		{
+			int lineX = (screenWidth / 2) - 150 + (300 * i * cfg.shotCost) / cfg.ammoMax;
+			DrawLine(lineX, screenHeight - 65, lineX, screenHeight - 25, BLACK);
+		}
+		DrawRectangle((screenWidth / 2) - 150, screenHeight - 30, (300 * state.p1.stamina) / cfg.staminaMax, 20, YELLOW);
+		for (int i = 1; i <= (cfg.staminaMax / cfg.dashCost); i++)
+		{
+			int lineX = (screenWidth / 2) - 150 + (300 * i * cfg.dashCost) / cfg.staminaMax;
+			DrawLine(lineX, screenHeight - 35, lineX, screenHeight - 5, BLACK);
+		}
 
 		int currentFps = GetFPS();
 		gameInfoOSS.str("");

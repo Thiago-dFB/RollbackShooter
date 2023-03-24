@@ -139,15 +139,12 @@ void movePlayer(Player* player, const Config* cfg, PlayerInput input)
 			player->vel = v2::normalizeMult(player->vel, cfg->playerWalkSpeed);
 		}
 
-		//NORMAL WALKING MOVEMENT - DISPLACEMENT AND CORRECTION
+		//NORMAL WALKING MOVEMENT - DISPLACEMENT
 		player->pos = v2::add(player->pos, player->vel);
-		if (v2::length(player->pos) > cfg->arenaRadius)
-		{
-			player->pos = v2::normalizeMult(player->pos, cfg->arenaRadius);
-			player->vel = v2::rejection(player->vel, player->pos);
-		}
 		break;
 	case PState::Dashing:
+		player->dir = v2::rotate(player->dir, input.mouse);
+
 		if (player->dashCount < cfg->dashPhase)
 		{
 			num_det alpha = num_det{ player->dashCount } / num_det{ cfg->dashPhase };
@@ -160,6 +157,13 @@ void movePlayer(Player* player, const Config* cfg, PlayerInput input)
 			player->vel = player->dashVel;
 		}
 		break;
+	}
+
+	//CORRECT TO WITHIN ARENA
+	if (v2::length(player->pos) > cfg->arenaRadius)
+	{
+		player->pos = v2::normalizeMult(player->pos, cfg->arenaRadius);
+		player->vel = v2::rejection(player->vel, player->pos);
 	}
 }
 

@@ -75,14 +75,15 @@ Config readTOMLForCfg()
 	iss.str(file["PlayerSpeed"]["playerWalkAccel"].value_or("0.4"));
 	iss.seekg(0, iss.beg);
 	iss >> extract;
-	cfg.playerWalkAccel = extract / num_det{ 60 };
+	cfg.playerWalkAccel = extract / num_det{ 1800 };
 	iss.str(file["PlayerSpeed"]["playerWalkFric"].value_or("0.4"));
 	iss.seekg(0, iss.beg);
 	iss >> extract;
-	cfg.playerWalkFric = extract / num_det{ 60 };
+	cfg.playerWalkFric = extract / num_det{ 1800 };
 	iss.str(file["PlayerSpeed"]["playerDashSpeed"].value_or("1.2"));
 	iss.seekg(0, iss.beg);
 	iss >> extract;
+	cfg.playerDashSpeed = (extract / num_det{ 60 });
 
 	iss.str(file["ProjSpeed"]["projSpeed"].value_or("0.6"));
 	iss.seekg(0, iss.beg);
