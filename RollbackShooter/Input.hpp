@@ -107,11 +107,23 @@ PlayerInput processInput(const InputBindings* bind)
 	return input;
 }
 
-std::string inputToString(const PlayerInput* input)
+std::string inputToString(PlayerInput input)
 {
 	std::ostringstream oss;
-	oss << "atk" << static_cast<int>(input->atk) << "mov" << static_cast<int>(input->mov) << "mouse" << input->mouse << ";";
+	oss << "a" << static_cast<int>(input.atk) << "m" << static_cast<int>(input.mov) << "l" << input.mouse.raw_value() << ";";
 	return oss.str();
+}
+
+PlayerInput stringToInput(std::string str)
+{
+	PlayerInput input;
+	//0123456789...
+	//a*m*l****;
+	input.atk = static_cast<AttackInput>(std::stoi(str.substr(1, 1)));
+	input.mov = static_cast<MoveInput>(std::stoi(str.substr(3, 1)));
+	size_t delim = str.find(";");
+	input.mouse.from_raw_value(std::stoi(str.substr(5, delim - 5)));
+	return input;
 }
 
 #endif
