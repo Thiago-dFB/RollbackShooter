@@ -29,7 +29,6 @@ struct InputData
 	PlayerInput p2Input;
 };
 
-
 struct Projectile
 {
 	Vec2 pos = v2::zero();
@@ -44,13 +43,13 @@ struct GameState
 	RoundPhase phase = Countdown;
 	
 	Player p1;
-	int8 health1 = 0;
-	int8 rounds1 = 0;
+	int16 health1 = 0;
+	int16 rounds1 = 0;
 	bool p1DmgThisFrame = false;
 
 	Player p2;
-	int8 health2 = 0;
-	int8 rounds2 = 0;
+	int16 health2 = 0;
+	int16 rounds2 = 0;
 	bool p2DmgThisFrame = false;
 	
 	etl::vector<Projectile, MAX_PROJECTILES> projs;
@@ -491,14 +490,29 @@ GameState simulate(GameState state, const Config* cfg, InputData input)
 			state.p2.stamina = state.p2.stamina - cfg->dashCost;
 		}
 
+		//ROUND END
+		if (state.phase == RoundPhase::Play && (state.roundCountdown <= 0 || state.health1 <= 0 || state.health2 <= 0))
+		{
+			if (state.health1 > state.health2)
+			{
+				state.rounds1++;
+			}
+			else if (state.health2 > state.health1)
+			{
+				state.rounds2++;
+			}
+			state.phase = RoundPhase::End;
+			state.roundCountdown = ROUNDEND_COUNTDOWN;
+		}
+
 		break;
 	}
 	return state;
 }
 
-inline Vector3 fromDetVec2(Vec2 vec)
+inline Vector3 fromDetVec2(Vec2 vec, float height=0.0f)
 {
-	return Vector3{ static_cast<float>(vec.x), 0.0f, static_cast<float>(vec.y) };
+	return Vector3{ static_cast<float>(vec.x), height, static_cast<float>(vec.y) };
 }
 
 inline float fromDetNum(num_det num)
@@ -520,10 +534,16 @@ int main(int argc, char* argv[])
 	cam.position = Vector3{ 0.0f, 15.0f, 15.0f };  // Camera position
 	cam.target = Vector3{ 0.0f, 0.0f, 0.0f };      // Camera looking at point
 	cam.up = Vector3{ 0.0f, 1.0f, 0.0f };          // Camera up vector (rotation towards target)
-	cam.fovy = 45.0f;                                // Camera field-of-view Y
+	cam.fovy = 70.0f;                                // Camera field-of-view Y
 	cam.projection = CAMERA_PERSPECTIVE;             // Camera mode type
 
+	num_det camBack{ -5 };
+	float camHeight = 4;
+	num_det tgtFront{ 8 };
+	float tgtHeight = 0;
+
 	std::ostringstream gameInfoOSS;
+	double worstFrame = 0;
 
 	const InputBindings bind = readTOMLForBind();
 	const Config cfg = readTOMLForCfg();
@@ -540,12 +560,14 @@ int main(int argc, char* argv[])
 		double before = GetTime();
 		state = simulate(state, &cfg, input);
 		double after = GetTime();
+		worstFrame = std::max(worstFrame, after - before);
 
 		//secondary simulation (holds its own state)
 		// probably not doing it here lol
 
 		//secondary simulation (doesn't hold its own state)
-
+		cam.position = fromDetVec2(v2::add(state.p1.pos, v2::scalarMult(state.p1.dir, camBack)), camHeight);
+		cam.target = fromDetVec2(v2::add(state.p1.pos, v2::scalarMult(state.p1.dir, tgtFront)), tgtHeight);
 
 		//presentation
 
@@ -564,9 +586,6 @@ int main(int argc, char* argv[])
 				fromDetNum(cfg.playerRadius),
 				fromDetNum(cfg.playerRadius),
 				1.0f, 10, BLUE);
-			DrawSphereWires(
-				fromDetVec2(v2::add(state.p1.pos, state.p1.dir)),
-				.1f, 5, 5, RED);
 			for (auto it = state.projs.begin(); it != state.projs.end(); ++it)
 			{
 				switch (it->owner)
@@ -598,10 +617,11 @@ int main(int argc, char* argv[])
 		int currentFps = GetFPS();
 		gameInfoOSS.str("");
 		gameInfoOSS << "FPS: " << currentFps << std::endl;
-		gameInfoOSS << "Player Movement: " << p1input.mov << "; ";
-		gameInfoOSS << "Player Attack: " << p1input.atk << std::endl;
-		gameInfoOSS << "Player distance from center: " << v2::length(state.p1.pos) << std::endl;
-		gameInfoOSS << "Simulation cost: " << (after - before)*1000 << " ms" << std::endl;
+		gameInfoOSS << "Simulation cost: " << (after - before) * 1000 << " ms" << std::endl;
+		gameInfoOSS << "(Worst frame yet: " << worstFrame * 1000 << " ms)" << std::endl;
+		gameInfoOSS << "P1 HP: " << state.health1 << "; ";
+		gameInfoOSS << "P2 HP: " << state.health2 << std::endl;
+		gameInfoOSS << "Round Phase: " << std::to_string(state.phase) << "; Round Countdown: " << (state.roundCountdown / 60) << "." << (state.roundCountdown % 60) << std::endl;
 		DrawText(gameInfoOSS.str().c_str(), 5, 5, 20, GRAY);
 
 		EndDrawing();
