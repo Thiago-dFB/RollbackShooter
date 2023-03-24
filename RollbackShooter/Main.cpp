@@ -527,17 +527,17 @@ int main(int argc, char* argv[])
 	const int screenWidth = 800;
 	const int screenHeight = 600;
 
-	InitWindow(screenWidth, screenHeight, "Game");
+	InitWindow(screenWidth, screenHeight, "RBST");
 	SetTargetFPS(60);
 	SetWindowState(FLAG_WINDOW_ALWAYS_RUN);
 	DisableCursor();
 
 	Camera3D cam = { 0 };
-	cam.position = Vector3{ 0.0f, 15.0f, 15.0f };  // Camera position
-	cam.target = Vector3{ 0.0f, 0.0f, 0.0f };      // Camera looking at point
-	cam.up = Vector3{ 0.0f, 1.0f, 0.0f };          // Camera up vector (rotation towards target)
-	cam.fovy = 70.0f;                                // Camera field-of-view Y
-	cam.projection = CAMERA_PERSPECTIVE;             // Camera mode type
+	cam.position = Vector3{ 0.0f, 15.0f, 15.0f };
+	cam.target = Vector3{ 0.0f, 0.0f, 0.0f };
+	cam.up = Vector3{ 0.0f, 1.0f, 0.0f };
+	cam.fovy = 70.0f;
+	cam.projection = CAMERA_PERSPECTIVE;
 
 	num_det camBack{ -5 };
 	float camHeight = 4;
@@ -618,9 +618,9 @@ int main(int argc, char* argv[])
 			}
 			DrawCylinderWires(
 				Vector3{0.0f, 0.0f, 0.0f},
+				fromDetNum(cfg.arenaRadius + cfg.playerRadius),
 				fromDetNum(cfg.arenaRadius),
-				fromDetNum(cfg.arenaRadius),
-				.1f, 10, BLACK);
+				-.5f, 50, BLACK);
 			DrawGrid(10, static_cast<float>(cfg.arenaRadius)/10.0f);
 		EndMode3D();
 
@@ -641,7 +641,7 @@ int main(int argc, char* argv[])
 		gameInfoOSS.str("");
 		gameInfoOSS << "FPS: " << currentFps << std::endl;
 		gameInfoOSS << "Simulation cost: " << (after - before) * 1000 << " ms" << std::endl;
-		gameInfoOSS << "(Worst frame yet: " << worstFrame * 1000 << " ms)" << std::endl;
+		gameInfoOSS << "Worst frame yet: " << worstFrame * 1000 << " ms" << std::endl;
 		gameInfoOSS << "P1 HP: " << state.health1 << "; ";
 		gameInfoOSS << "P2 HP: " << state.health2 << std::endl;
 		gameInfoOSS << "Round Phase: " << std::to_string(state.phase) << "; Round Countdown: " << (state.roundCountdown / 60) << "." << (state.roundCountdown % 60) << std::endl;

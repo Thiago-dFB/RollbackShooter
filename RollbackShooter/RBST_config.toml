@@ -1,10 +1,10 @@
 # some things to consider
-# - deterministic number is set to 8.24 so only values smaller than 128 for decimal values
+# - only values smaller than 128 for decimal values
 #       (y'know, the ones in string so that the parser doesn't possibly marshall as floats, I haven't checked it)
 # - projectile limit is 32 just in case
 #       (and I haven't optimized collisions with partioning anyway so please don't go ham)
 # - set speeds and forces to unit per second instead of per frame, they're already being divided by 60 in the code
-#       (and yes, acceleration gets divided by 3600 instead)
+#       (and yes, acceleration gets divided by 1800 instead)
 
 [GameRules]
 playerHealth = 5
@@ -18,19 +18,19 @@ staminaMax     = 150    #frames for stamina to fully fill
 dashCost       = 50
 
 [PlayerActions]
-dashPhase      = 10     #frames for normal movement to completely phase into dash movement
-dashPerfect    = 15     #frames for perfect evade window
-dashDuration   = 60     #dash length in frames
+dashPhase      = 8      #frames for normal movement to completely phase into dash movement
+dashPerfect    = 10     #frames for perfect evade window
+dashDuration   = 20     #dash length in frames
 chargeDuration = 45     #charge length in frames
 
 [PlayerSpeed]
-playerWalkSpeed = "4"
+playerWalkSpeed = "4.0"
 playerWalkAccel = "4.5"
 playerWalkFric  = "2.8"
-playerDashSpeed = "12"
+playerDashSpeed = "24.0"
 
 [ProjSpeed]
-projSpeed = "10"
+projSpeed = "10.0"
 projCounterMultiply = "1.2"
 
 [Radius]
