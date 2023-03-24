@@ -83,7 +83,7 @@ void movePlayer(Player* player, const Config* cfg, PlayerInput input)
 		//no break, fall through to default
 	case PState::Default:
 		//MOUSE MOVEMENT
-		player->dir = v2::rotate(player->dir, input.mouse);
+		player->dir = v2::normalize(v2::rotate(player->dir, input.mouse));
 
 		if (player->stunned) input.mov = MoveInput::Neutral;
 

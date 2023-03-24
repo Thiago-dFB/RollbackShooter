@@ -120,20 +120,19 @@ namespace v2
 		return sub(a, projection(a,b));
 	}
 
-	// distance between closest point in a ray and the center of something
-	// won't check radius because them multiple occasions can account for things such as grazing
-	num_det closest(Vec2 origin, Vec2 vector, Vec2 center)
+	// returns <dot product of (point-origin) and ray vector, distance from closest point in ray to point>
+	Vec2 closest(Vec2 rayOrig, Vec2 rayVec, Vec2 point)
 	{
-		Vec2 o2c = sub(center, origin);
-		num_det relative = dot(o2c, vector);
-		if (relative < num_det{ 0 })
-		{
-			// dunno how to define the highest value this type holds so this goes lmao
-			return num_det{ 127 };
-		}
-		Vec2 projection = scalarMult(vector, relative);
+		Vec2 o2c = sub(point, rayOrig);
+		num_det relative = dot(o2c, rayVec);
+		Vec2 projection = scalarMult(rayVec, relative);
 		Vec2 closest = sub(o2c, projection);
-		return length(closest);
+		return Vec2{ relative , length(closest) };
+	}
+
+	inline bool rayWithinRadius(num_det dot, num_det dist, num_det radius)
+	{
+		return (dot > num_det{ 0 }) && (dist < radius);
 	}
 }
 

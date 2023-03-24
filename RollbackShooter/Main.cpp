@@ -95,34 +95,42 @@ void altShot(GameState* state, const Config* cfg, Vec2 origin, Vec2 direction, p
 	if (owner == 1)	opposition = &(state->p2); else opposition = &(state->p1);
 	//PARRY
 	if (opposition->pushdown.top() == PState::Dashing &&
-		opposition->dashCount < cfg->dashPerfect &&
-		v2::closest(origin, direction, opposition->perfectPos) < cfg->playerRadius)
+		opposition->dashCount < cfg->dashPerfect)
 	{
-		//right back at ya
-		origin = v2::add(v2::projection(v2::sub(opposition->perfectPos, origin), direction), origin);
-		direction = v2::scalarMult(direction, num_det{ -1 });
-		owner = opposition->id;
-		opposition->pushdown.push(PState::Hitstop);
-		opposition->hitstopCount = cfg->midHitstop;
-		if (owner == 1)	opposition = &(state->p2); else opposition = &(state->p1);
+		Vec2 dotDist = v2::closest(origin, direction, opposition->perfectPos);
+		if (v2::rayWithinRadius(dotDist.x, dotDist.y, cfg->playerRadius))
+		{
+			//right back at ya
+			origin = v2::add(v2::projection(v2::sub(opposition->perfectPos, origin), direction), origin);
+			direction = v2::scalarMult(direction, num_det{ -1 });
+			owner = opposition->id;
+			opposition->pushdown.push(PState::Hitstop);
+			opposition->hitstopCount = cfg->midHitstop;
+			if (owner == 1)	opposition = &(state->p2); else opposition = &(state->p1);
+		}
 	}
 	//DIRECT HIT OR GRAZE
-	num_det dist = v2::closest(origin, direction, opposition->pos);
-	if (!opposition->stunned && dist < cfg->playerRadius)
+	Vec2 dotDist = v2::closest(origin, direction, opposition->pos);
+	if (!opposition->stunned && (dotDist.x > num_det{ 0 }))
 	{
-		damagePlayer(opposition, cfg, origin, 2);
-		if (owner == 1)	regDamage(state, 2); else regDamage(state, 1);
+		if (dotDist.y < cfg->playerRadius)
+		{
+			damagePlayer(opposition, cfg, origin, 2);
+			if (owner == 1)	regDamage(state, 2); else regDamage(state, 1);
+		}
+		else if (dotDist.y < cfg->grazeRadius)
+		{
+			opposition->ammo = cfg->ammoMax;
+			opposition->stamina = cfg->staminaMax;
+		}
 	}
-	else if (dist < cfg->grazeRadius)
-	{
-		opposition->ammo = cfg->ammoMax;
-		opposition->stamina = cfg->staminaMax;
-	}
+	
 	//COMBO
 	auto it = state->projs.begin();
 	while (it != state->projs.end())
 	{
-		if (v2::closest(origin, direction, it->pos) < cfg->projRadius)
+		Vec2 dotDist = v2::closest(origin, direction, it->pos);
+		if (v2::rayWithinRadius(dotDist.x, dotDist.y, cfg->projRadius))
 		{
 			if (!state->p1.stunned && v2::length(v2::sub(it->pos, state->p1.pos)) < (cfg->comboRadius + cfg->playerRadius))
 			{
