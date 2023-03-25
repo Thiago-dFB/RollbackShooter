@@ -52,12 +52,11 @@ int main(int argc, char* argv[])
 		Vec2 lazyCam = v2::zero();
 		POV replayPOV = Spectator;
 		GameState state = initialState(&cfg);
-		double frameStart = GetTime();
-		double frameNearEnd = GetTime();
+		std::ostringstream gameInfoOSS;
+		double semaphoreIdleTime = 0;
+
 		while (!WindowShouldClose() && !endCondition(&state, &cfg))
 		{
-			frameStart = GetTime();
-
 			//process input
 			PlayerInput p1input = processInput(&inputBind);
 			PlayerInput p2Dummy{ None, Neutral, num_det {0} };
@@ -86,10 +85,18 @@ int main(int argc, char* argv[])
 			else
 				pov = replayPOV;
 
-			//presentation
-			present(pov, &state, &cfg, &cam, &lazyCam, frameStart, &frameNearEnd);
-		}
+			int currentFps = GetFPS();
+			gameInfoOSS.str("");
+			gameInfoOSS << "FPS: " << currentFps << std::endl;
+			gameInfoOSS << "Semaphore idle time: " << semaphoreIdleTime * 1000 << " ms" << std::endl;
+			gameInfoOSS << "P1 HP: " << state.health1 << "; ";
+			gameInfoOSS << "P2 HP: " << state.health2 << std::endl;
+			gameInfoOSS << "Round Phase: " << std::to_string(state.phase) << "; ";
+			gameInfoOSS << "Round Countdown : " << (state.roundCountdown / 60) << "." << (state.roundCountdown % 60) << std::endl;
 
+			//presentation
+			semaphoreIdleTime = present(pov, &state, &cfg, &cam, &lazyCam, &gameInfoOSS);
+		}
 	}
 	
 	CloseWindow();

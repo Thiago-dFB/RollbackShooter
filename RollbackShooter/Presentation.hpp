@@ -76,7 +76,8 @@ void drawBars(const Player* player, const Config* cfg)
 	}
 }
 
-void present(POV pov, const GameState* state, const Config* cfg, Camera3D* cam, Vec2* lazyCam, double frameStart, double* frameNearEnd)
+//returns semaphore idle time
+double present(POV pov, const GameState* state, const Config* cfg, Camera3D* cam, Vec2* lazyCam, std::ostringstream* gameInfoOSS)
 {
 	setCamera(cam, lazyCam, state, pov);
 	
@@ -138,19 +139,12 @@ void present(POV pov, const GameState* state, const Config* cfg, Camera3D* cam, 
 	else if (pov == Player2)
 		drawBars(&state->p2, cfg);
 
-	*frameNearEnd = GetTime();
-
-	int currentFps = GetFPS();
-	std::ostringstream gameInfoOSS;
-	gameInfoOSS << "FPS: " << currentFps << std::endl;
-	gameInfoOSS << "Frame start to near end: " << (*frameNearEnd - frameStart) * 1000 << std::endl;
-	gameInfoOSS << "P1 HP: " << state->health1 << "; ";
-	gameInfoOSS << "P2 HP: " << state->health2 << std::endl;
-	gameInfoOSS << "Round Phase: " << std::to_string(state->phase) << "; Round Countdown: " << (state->roundCountdown / 60) << "." << (state->roundCountdown % 60) << std::endl;
-	DrawText(gameInfoOSS.str().c_str(), 5, 5, 20, GRAY);
+	DrawText(gameInfoOSS->str().c_str(), 5, 5, 20, GRAY);
 
 	//I figure this is also the timing semaphore
+	double beforeSemaphore = GetTime();
 	EndDrawing();
+	return GetTime() - beforeSemaphore;
 }
 
 #endif // !RBST_PRESENTATION_HPP

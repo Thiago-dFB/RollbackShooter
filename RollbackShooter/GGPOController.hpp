@@ -191,21 +191,18 @@ void NetworkedMain(std::string remoteAddress, unsigned short localPort, playerid
     Camera3D cam = initialCamera();
     Vec2 lazyCam = v2::zero();
     ggState = initialState(&cfg);
-
-    double frameStart = GetTime();
-    double frameNearEnd = GetTime();
+    std::ostringstream gameInfoOSS;
+    double semaphoreIdleTime = 0;
 
     NewNetworkedSession(remoteAddress, localPort, localPlayer);
     while (connected && !WindowShouldClose() && !endCondition(&ggState, &cfg))
     {
-        frameStart = GetTime(); //gets a new time at start of frame, after what's probably the semaphore
-        double timeYouCanProbablyGiveToIdle = frameStart - frameNearEnd;
-        int timeGivenToIdle = static_cast<int>(floor(timeYouCanProbablyGiveToIdle * 1000)) - 3;
-        
         //GGPO needs this time to execute rollbacks and send packets
         //try to give as much as you can without lagging the main loop
+        int timeGivenToIdle = static_cast<int>(floor(semaphoreIdleTime * 1000)) - 1;
         ggpo_idle(ggpo, std::max(0, timeGivenToIdle));
         
+        //input processing
         GGPOErrorCode ggRes = GGPO_OK;
         int disconnect_flags;
         char inputRaw[10];
@@ -221,7 +218,7 @@ void NetworkedMain(std::string remoteAddress, unsigned short localPort, playerid
             ggRes = ggpo_add_local_input(ggpo, localHandle, localInputRaw, 5);
         }
 
-        //Sync inputs right now (might have to do with input delay if it's set)
+        //input syncing (might have to do with input delay if it's set)
         if (GGPO_SUCCEEDED(ggRes))
         {
             ggRes = ggpo_synchronize_input(ggpo, (void*)inputRaw, 10, &disconnect_flags);
@@ -241,7 +238,17 @@ void NetworkedMain(std::string remoteAddress, unsigned short localPort, playerid
             pov = Player1;
         else
             pov = Player2;
-        present(pov, &ggState, &cfg, &cam, &lazyCam, frameStart, &frameNearEnd);
+
+        int currentFps = GetFPS();
+        gameInfoOSS.str("");
+        gameInfoOSS << "FPS: " << currentFps << std::endl;
+        gameInfoOSS << "Semaphore idle time: " << semaphoreIdleTime * 1000 << " ms" << std::endl;
+        gameInfoOSS << "P1 HP: " << ggState.health1 << "; ";
+        gameInfoOSS << "P2 HP: " << ggState.health2 << std::endl;
+        gameInfoOSS << "Round Phase: " << std::to_string(ggState.phase) << "; ";
+        gameInfoOSS << "Round Countdown : " << (ggState.roundCountdown / 60) << "." << (ggState.roundCountdown % 60) << std::endl;
+
+        semaphoreIdleTime = present(pov, &ggState, &cfg, &cam, &lazyCam, &gameInfoOSS);
     }
     ExitNetworkedSession();
 }
