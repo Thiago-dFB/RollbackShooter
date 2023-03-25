@@ -1,7 +1,5 @@
 //std
 #include <string>
-//GGPO
-#include <ggponet.h>
 //Raylib
 #include <raylib.h>
 //TOML++
@@ -9,6 +7,7 @@
 
 #include "Math.hpp"
 #include "GameState.hpp"
+#include "Input.hpp"
 #include "Config.hpp"
 #include "Player.hpp"
 
@@ -18,10 +17,9 @@ const int screenHeight = 600;
 enum LaunchMode
 {
 	Home=0,
-	Dummy=1,
-	Replay=2,
-	Listen=3,
-	Connect=4
+	Replay=1,
+	Dummy=2,
+	Connect=3
 };
 
 enum POV
@@ -93,13 +91,10 @@ int main(int argc, char* argv[])
 	//TODO if I ever implement scene change this goes to a function just so it can leave scope naturally
 	auto launchOpt = toml::parse_file("RBST_launch.toml");
 	std::string mode = launchOpt["launchMode"].value_or("home");
-	std::cout << mode << std::endl;
-	if (mode.compare("dummy") == 0)
-		launch = Dummy;
-	else if (mode.compare("replay") == 0)
+	if (mode.compare("replay") == 0)
 		launch = Replay;
-	else if (mode.compare("listen") == 0)
-		launch = Listen;
+	else if (mode.compare("dummy") == 0)
+		launch = Dummy;
 	else if (mode.compare("connect") == 0)
 		launch = Connect;
 
@@ -131,6 +126,16 @@ int main(int argc, char* argv[])
 		PlayerInput p2Dummy{ None, Neutral, num_det {0} };
 		InputData input{ p1input,p2Dummy };
 
+		if (launch == Replay)
+		{
+			if (IsKeyPressed(bind.replayP1Key))
+				replayPOV = Player1;
+			else if (IsKeyPressed(bind.replayP2Key))
+				replayPOV = Player2;
+			else if (IsKeyPressed(bind.replaySpecKey))
+				replayPOV = Spectator;
+		}
+
 		//simulation
 		double before = GetTime();
 		state = simulate(state, &cfg, input);
@@ -141,9 +146,9 @@ int main(int argc, char* argv[])
 		// probably not doing it here lol
 
 		//secondary simulation (stateless)
-		if (launch == Dummy || launch == Listen)
+		if (launch == Dummy)
 			setCamera(&cam, &lazyCam, &state, Player1);
-		else if (launch == Connect)
+		else if (false) //TODO make networked player 2 this POV
 			setCamera(&cam, &lazyCam, &state, Player2);
 		else
 			setCamera(&cam, &lazyCam, &state, replayPOV);
@@ -203,9 +208,9 @@ int main(int argc, char* argv[])
 		}
 		EndMode3D();
 
-		if (launch == Dummy || launch == Listen)
+		if (launch == Dummy)
 			drawBars(&state.p1, &cfg);
-		else if (launch == Connect)
+		else if (false) //TODO make networked player 2 this POV
 			drawBars(&state.p2, &cfg);
 
 		int currentFps = GetFPS();

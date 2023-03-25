@@ -59,6 +59,9 @@ struct InputBindings
 	int altShotBtn = 6;
 	int dashKey = 0;
 	int dashBtn = 6;
+	int replayP1Key = 0;
+	int replayP2Key = 0;
+	int replaySpecKey = 0;
 };
 
 InputBindings readTOMLForBind()
@@ -83,6 +86,10 @@ InputBindings readTOMLForBind()
 	bind.altShotBtn = file["Attack"]["altFireBtn"].value_or(6);
 	bind.dashKey = file["Attack"]["dashKey"].value_or(0);
 	bind.dashBtn = file["Attack"]["dashBtn"].value_or(6);
+
+	bind.replayP1Key = file["Replay"]["p1Key"].value_or(0);
+	bind.replayP2Key = file["Replay"]["p2Key"].value_or(0);
+	bind.replaySpecKey = file["Replay"]["specKey"].value_or(0);
 
 	return bind;
 }

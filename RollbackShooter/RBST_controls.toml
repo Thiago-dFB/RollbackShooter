@@ -2,20 +2,25 @@
 sensitivity = "0.5"
 
 [Direction]
-forward = 87
-back    = 83
-left    = 65
-right   = 68
+forward = 87 #W
+back    = 83 #S
+left    = 65 #A
+right   = 68 #D
 
 #for ***Key use a keyboard key, and for ***Btn a mouse button
 #use 0 for unused key and 6 for unused mouse button
 [Attack]
 fireKey    = 0
-fireBtn    = 0
+fireBtn    = 0  #LMB
 altFireKey = 0
-altFireBtn = 1
-dashKey    = 32
+altFireBtn = 1  #RMB
+dashKey    = 32 #Space
 dashBtn    = 6
+
+[Replay]
+p1Key   = 290 #F1
+p2Key   = 291 #F2
+specKey = 292 #F3
 
 # MOUSE BUTTON CODES
 # Left Mouse Button       = 0
