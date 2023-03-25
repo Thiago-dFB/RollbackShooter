@@ -140,4 +140,6 @@ Config readTOMLForCfg()
 	return cfg;
 }
 
+const Config cfg = readTOMLForCfg();
+
 #endif

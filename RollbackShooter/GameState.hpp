@@ -12,7 +12,7 @@
 const int PREGAME_COUNTDOWN = 180;
 const int ROUNDTIMER_COUNTDOWN = 5999;
 const int ROUNDEND_COUNTDOWN = 180;
-const size_t MAX_PROJECTILES = 32;
+const size_t MAX_PROJECTILES = 16;
 
 enum RoundPhase
 {
@@ -510,6 +510,14 @@ GameState simulate(GameState state, const Config* cfg, InputData input)
 		break;
 	}
 	return state;
+}
+
+bool endCondition(const GameState* state, const Config* cfg)
+{
+	bool phaseIsEnd = state->phase == End;
+	bool countdownEnded = state->roundCountdown <= 0;
+	bool aPlayerWon = state->rounds1 >= cfg->roundsToWin || state->rounds2 >= cfg->roundsToWin;
+	return phaseIsEnd && countdownEnded && aPlayerWon;
 }
 
 #endif

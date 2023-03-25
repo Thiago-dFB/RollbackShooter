@@ -6,8 +6,11 @@
 launchMode = "dummy"
 
 [Network]
-address = "127.0.0.1" #naturally, change this to IP of listener
-port = 8001
+remoteAddress = "127.0.0.1" #naturally, change this to IP of listener
+localPort = 8001
+localPlayer = 1
+#GGPO requires every peer to set which player it is
+#so it's either through info sent by a punchthrough server OR MANUALLY 
 
 [Replay]
 replayFile = "demo.rbst"

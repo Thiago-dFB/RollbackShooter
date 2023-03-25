@@ -38,6 +38,9 @@
     <ClInclude Include="GGPOController.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Presentation.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="RBST_config.toml">

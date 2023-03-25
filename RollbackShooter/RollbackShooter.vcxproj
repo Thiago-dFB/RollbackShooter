@@ -116,7 +116,7 @@
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>C:\DEV\.libs\ggpo\build\lib\x64\Debug;C:\DEV\.libs\raylib-4.5.0_win64_msvc16\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>WinMM.lib;raylib.lib;raylibdll.lib;GGPO.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Ws2_32.lib;WinMM.lib;GGPO.lib;raylib.lib;raylibdll.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -135,7 +135,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>C:\DEV\.libs\ggpo\build\lib\x64\Release;C:\DEV\.libs\raylib-4.5.0_win64_msvc16\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>WinMM.lib;raylib.lib;raylibdll.lib;GGPO.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Ws2_32.lib;WinMM.lib;GGPO.lib;raylib.lib;raylibdll.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -148,6 +148,7 @@
     <ClInclude Include="Input.hpp" />
     <ClInclude Include="Math.hpp" />
     <ClInclude Include="Player.hpp" />
+    <ClInclude Include="Presentation.hpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="RBST_config.toml">

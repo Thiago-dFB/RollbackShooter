@@ -68,49 +68,53 @@ InputBindings readTOMLForBind()
 {
 	IsKeyPressed(KEY_A);
 	
-	InputBindings bind;
+	InputBindings inputBind;
 	auto file = toml::parse_file("RBST_controls.toml");
 	std::istringstream iss;
 
 	iss.str(file["Mouse"]["sensitivity"].value_or("1"));
-	iss >> bind.sensitivity;
+	iss >> inputBind.sensitivity;
 	
-	bind.forward = file["Direction"]["forward"].value_or(0);
-	bind.back = file["Direction"]["back"].value_or(0);
-	bind.left = file["Direction"]["left"].value_or(0);
-	bind.right = file["Direction"]["right"].value_or(0);
+	inputBind.forward = file["Direction"]["forward"].value_or(0);
+	inputBind.back = file["Direction"]["back"].value_or(0);
+	inputBind.left = file["Direction"]["left"].value_or(0);
+	inputBind.right = file["Direction"]["right"].value_or(0);
 
-	bind.shotKey = file["Attack"]["fireKey"].value_or(0);
-	bind.shotBtn = file["Attack"]["fireBtn"].value_or(6);
-	bind.altShotKey = file["Attack"]["altFireKey"].value_or(0);
-	bind.altShotBtn = file["Attack"]["altFireBtn"].value_or(6);
-	bind.dashKey = file["Attack"]["dashKey"].value_or(0);
-	bind.dashBtn = file["Attack"]["dashBtn"].value_or(6);
+	inputBind.shotKey = file["Attack"]["fireKey"].value_or(0);
+	inputBind.shotBtn = file["Attack"]["fireBtn"].value_or(6);
+	inputBind.altShotKey = file["Attack"]["altFireKey"].value_or(0);
+	inputBind.altShotBtn = file["Attack"]["altFireBtn"].value_or(6);
+	inputBind.dashKey = file["Attack"]["dashKey"].value_or(0);
+	inputBind.dashBtn = file["Attack"]["dashBtn"].value_or(6);
 
-	bind.replayP1Key = file["Replay"]["p1Key"].value_or(0);
-	bind.replayP2Key = file["Replay"]["p2Key"].value_or(0);
-	bind.replaySpecKey = file["Replay"]["specKey"].value_or(0);
+	inputBind.replayP1Key = file["Replay"]["p1Key"].value_or(0);
+	inputBind.replayP2Key = file["Replay"]["p2Key"].value_or(0);
+	inputBind.replaySpecKey = file["Replay"]["specKey"].value_or(0);
 
-	return bind;
+	return inputBind;
 }
 
-PlayerInput processInput(const InputBindings* bind)
+const InputBindings inputBind = readTOMLForBind();
+
+//INPUT PROCESSING AND CONVERSION
+
+PlayerInput processInput(const InputBindings* inputBind)
 {
 	PlayerInput input;
 	
 	//TODO flip this value if mouselook is inverted
-	input.mouse = IsWindowFocused() ? bind->sensitivity * num_det{ DEG2RAD * GetMouseDelta().x } : num_det{0};
+	input.mouse = IsWindowFocused() ? inputBind->sensitivity * num_det{ DEG2RAD * GetMouseDelta().x } : num_det{0};
 
 	int8 direction = 5;
-	if (IsKeyDown(bind->forward)) direction = direction + 3;
-	if (IsKeyDown(bind->back)) direction = direction - 3;
-	if (IsKeyDown(bind->left)) --direction;
-	if (IsKeyDown(bind->right)) ++direction;
+	if (IsKeyDown(inputBind->forward)) direction = direction + 3;
+	if (IsKeyDown(inputBind->back)) direction = direction - 3;
+	if (IsKeyDown(inputBind->left)) --direction;
+	if (IsKeyDown(inputBind->right)) ++direction;
 	input.mov = static_cast<MoveInput>(direction);
 
-	if (IsMouseButtonPressed(bind->shotBtn) || IsKeyPressed(bind->shotKey)) input.atk = Shot;
-	if (IsMouseButtonPressed(bind->altShotBtn) || IsKeyPressed(bind->altShotKey)) input.atk = AltShot;
-	if (IsKeyPressed(bind->dashKey) || IsMouseButtonPressed(bind->dashBtn)) input.atk = Dash;
+	if (IsMouseButtonPressed(inputBind->shotBtn) || IsKeyPressed(inputBind->shotKey)) input.atk = Shot;
+	if (IsMouseButtonPressed(inputBind->altShotBtn) || IsKeyPressed(inputBind->altShotKey)) input.atk = AltShot;
+	if (IsKeyPressed(inputBind->dashKey) || IsMouseButtonPressed(inputBind->dashBtn)) input.atk = Dash;
 
 	return input;
 }

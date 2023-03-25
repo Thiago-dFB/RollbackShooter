@@ -4,6 +4,8 @@
 //fpm
 #include <fpm/fixed.hpp>
 #include <fpm/math.hpp>
+//Raylib
+#include <raylib.h>
 
 using num_det = fpm::fixed<std::int32_t, std::int64_t, 16>;
 using int8 = std::int8_t;
@@ -134,6 +136,16 @@ namespace v2
 	{
 		return (dot > num_det{ 0 }) && (dist < radius);
 	}
+}
+
+inline Vector3 fromDetVec2(Vec2 vec, float height = 0.0f)
+{
+	return Vector3{ static_cast<float>(vec.x), height, static_cast<float>(vec.y) };
+}
+
+inline float fromDetNum(num_det num)
+{
+	return static_cast<float>(num);
 }
 
 #endif
