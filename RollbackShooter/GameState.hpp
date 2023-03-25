@@ -9,9 +9,6 @@
 #include "Player.hpp"
 #include "Input.hpp"
 
-const int PREGAME_COUNTDOWN = 180;
-const int ROUNDTIMER_COUNTDOWN = 5999;
-const int ROUNDEND_COUNTDOWN = 180;
 const size_t MAX_PROJECTILES = 16;
 
 enum RoundPhase
@@ -51,7 +48,7 @@ GameState initialState(const Config* cfg)
 {
 	GameState state;
 	state.frame = 0;
-	state.roundCountdown = PREGAME_COUNTDOWN;
+	state.roundCountdown = cfg->roundCountdown;
 	state.phase = RoundPhase::Countdown;
 
 	state.p1.id = 1;
@@ -177,7 +174,7 @@ GameState simulate(GameState state, const Config* cfg, InputData input)
 	case RoundPhase::Countdown:
 		if (state.roundCountdown <= 0)
 		{
-			state.roundCountdown = ROUNDTIMER_COUNTDOWN;
+			state.roundCountdown = cfg->roundTime;
 			state.phase = RoundPhase::Play;
 		}
 		break;
@@ -186,7 +183,7 @@ GameState simulate(GameState state, const Config* cfg, InputData input)
 		{
 			if (state.rounds1 < cfg->roundsToWin && state.rounds2 < cfg->roundsToWin)
 			{
-				state.roundCountdown = PREGAME_COUNTDOWN;
+				state.roundCountdown = cfg->roundCountdown;
 				state.phase = RoundPhase::Countdown;
 				respawnPlayer(&(state.p1), cfg);
 				state.health1 = cfg->playerHealth;
@@ -503,8 +500,8 @@ GameState simulate(GameState state, const Config* cfg, InputData input)
 			{
 				state.rounds2++;
 			}
+			state.roundCountdown = cfg->roundEndTime;
 			state.phase = RoundPhase::End;
-			state.roundCountdown = ROUNDEND_COUNTDOWN;
 		}
 
 		break;

@@ -13,6 +13,9 @@ struct Config
 	//GameRules
 	int16 playerHealth = 0;
 	int16 roundsToWin = 0;
+	int16 roundCountdown = 0;
+	int16 roundTime = 0;
+	int16 roundEndTime = 0;
 	//PlayerResources
 	int16 ammoMax = 0;
 	int16 shotCost = 0;
@@ -57,6 +60,9 @@ Config readTOMLForCfg()
 
 	cfg.playerHealth = file["GameRules"]["playerHealth"].value_or(5);
 	cfg.roundsToWin = file["GameRules"]["roundsToWin"].value_or(2);
+	cfg.roundCountdown = file["GameRules"]["roundCountdown"].value_or(3) * 60;
+	cfg.roundTime = file["GameRules"]["roundTime"].value_or(100) * 60;
+	cfg.roundEndTime = file["GameRules"]["roundEndTime"].value_or(3) * 60;
 
 	cfg.ammoMax = file["PlayerResources"]["ammoMax"].value_or(120);
 	cfg.shotCost = file["PlayerResources"]["shotCost"].value_or(60);
