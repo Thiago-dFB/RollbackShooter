@@ -25,16 +25,16 @@ Camera3D initialCamera()
 	cam.position = Vector3{ 0.0f, 0.0f, 0.0f };
 	cam.target = Vector3{ 0.0f, 0.0f, 0.0f };
 	cam.up = Vector3{ 0.0f, 1.0f, 0.0f };
-	cam.fovy = 70.0f;
+	cam.fovy = 30.0f;
 	cam.projection = CAMERA_PERSPECTIVE;
 	return cam;
 }
 
 void setCamera(Camera3D* cam, Vec2* lazyCam, const GameState* state, POV pov)
 {
-	num_det camBack{ -5 };
-	float camHeight = 4;
-	num_det tgtFront{ 6 };
+	num_det camBack{ -15 };
+	float camHeight = 8;
+	num_det tgtFront{ 10 };
 	float tgtHeight = 0;
 	num_det laziness{ 0.2 };
 	float specHeight = 6;
@@ -87,6 +87,7 @@ double present(POV pov, const GameState* state, const Config* cfg, Camera3D* cam
 
 	BeginMode3D(*cam);
 	{
+		//draw players (and their alt shot direction if they're charging)
 		DrawCylinderWires(
 			fromDetVec2(state->p1.pos),
 			fromDetNum(cfg->playerRadius),
@@ -105,8 +106,24 @@ double present(POV pov, const GameState* state, const Config* cfg, Camera3D* cam
 		{
 			DrawRay(Ray{ fromDetVec2(state->p2.pos), fromDetVec2(state->p2.dir) }, BLUE);
 		}
+		//draw projectiles
+		bool showCombos = false;
+		int framesToAltShot = 0;
+		switch (pov)
+		{
+		case Player1:
+			showCombos = state->p1.ammo >= cfg->altShotCost;
+			framesToAltShot = state->p1.pushdown.top() == Charging ? (cfg->chargeDuration - state->p1.chargeCount) : cfg->chargeDuration;
+			break;
+		case Player2:
+			showCombos = state->p2.ammo >= cfg->altShotCost;
+			framesToAltShot = state->p2.pushdown.top() == Charging ? (cfg->chargeDuration - state->p2.chargeCount) : cfg->chargeDuration;
+			break;
+		}
 		for (auto it = state->projs.begin(); it != state->projs.end(); ++it)
 		{
+			Vec2 futurePos = v2::add(it->pos, v2::scalarMult(it->vel, num_det{framesToAltShot}));
+			bool withinReach = v2::length(futurePos) < cfg->arenaRadius;
 			switch (it->owner)
 			{
 			case 1:
@@ -123,6 +140,22 @@ double present(POV pov, const GameState* state, const Config* cfg, Camera3D* cam
 					fromDetNum(cfg->projRadius),
 					.5f, 10, BLUE);
 				break;
+			}
+			if (withinReach)
+			{
+				DrawCylinderWires(
+					fromDetVec2(futurePos),
+					fromDetNum(cfg->projRadius),
+					fromDetNum(cfg->projRadius),
+					.5f, 10, PURPLE);
+				if (showCombos)
+				{
+					DrawCylinderWires(
+						fromDetVec2(futurePos),
+						fromDetNum(cfg->comboRadius),
+						fromDetNum(cfg->comboRadius),
+						.1f, 10, PURPLE);
+				}
 			}
 		}
 		DrawCylinderWires(
