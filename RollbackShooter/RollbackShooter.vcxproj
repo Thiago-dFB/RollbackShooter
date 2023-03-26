@@ -157,7 +157,9 @@
     </None>
     <None Include="RBST_controls.toml" />
     <None Include="RBST_launch.toml" />
-    <None Include="shader\gauss.fs" />
+    <None Include="shader\bg.fs">
+      <DeploymentContent>true</DeploymentContent>
+    </None>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

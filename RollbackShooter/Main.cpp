@@ -34,7 +34,7 @@ int main(int argc, char* argv[])
 
 	BGInfo bg;
 	bg.target = LoadRenderTexture(screenWidth, screenHeight);
-	bg.shader = LoadShader(0, "shader/gauss.fs");
+	bg.shader = LoadShader(0, "shader/bg.fs");
 
 	//home screen
 	while (!WindowShouldClose())
