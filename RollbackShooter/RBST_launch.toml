@@ -1,16 +1,6 @@
-# ALL CASE SENSITIVE
-# home (or anything else) = home screen (plays a blurred replay in the background)
-# replay                  = plays a replay
-# dummy                   = match against an inert P2 to finetune your controls
-# connect                 = connect to <address>:<port>
-launchMode = "dummy"
-
 [Network]
-remoteAddress = "127.0.0.1" #naturally, change this to IP of listener
+remoteAddress = "127.0.0.1"
 localPort = 8001
-localPlayer = 1
-#GGPO requires every peer to set which player it is
-#so it's either through info sent by a punchthrough server OR MANUALLY 
 
 [Replay]
 replayFile = "demo.rbst"
