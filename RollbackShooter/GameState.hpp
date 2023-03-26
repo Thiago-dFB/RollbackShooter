@@ -191,10 +191,6 @@ GameState simulate(GameState state, const Config* cfg, InputData input)
 				state.health2 = cfg->playerHealth;
 				state.projs.clear();
 			}
-			else
-			{
-				//TODO SIGNAL THAT GAME ENDED
-			}
 			break;
 		}
 		// will simulate at half speed
