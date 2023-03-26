@@ -35,6 +35,7 @@ int main(int argc, char* argv[])
 	BGInfo bg;
 	bg.target = LoadRenderTexture(screenWidth, screenHeight);
 	bg.shader = LoadShader(0, "shader/bg.fs");
+	Sprites sprs = LoadSprites();
 
 	//home screen
 	while (!WindowShouldClose())
@@ -79,19 +80,19 @@ int main(int argc, char* argv[])
 				switch (home.selected)
 				{
 				case Dummy:
-					DummyMain();
+					DummyMain(&sprs);
 					//back from match
 					replayState = initialState(&cfg);
 					home.lazyCam = v2::zero();
 					break;
 				case ConnectP1:
-					NetworkedMain(home.remoteAddress, port, 1);
+					NetworkedMain(&sprs, home.remoteAddress, port, 1);
 					//back from match
 					replayState = initialState(&cfg);
 					home.lazyCam = v2::zero();
 					break;
 				case ConnectP2:
-					NetworkedMain(home.remoteAddress, port, 2);
+					NetworkedMain(&sprs, home.remoteAddress, port, 2);
 					//back from match
 					replayState = initialState(&cfg);
 					home.lazyCam = v2::zero();
@@ -111,8 +112,10 @@ int main(int argc, char* argv[])
 		replayOSS.str("");
 		replayOSS << "FPS: " << currentFps << std::endl;
 		//presentation
-		presentMenu(replayPOV, &replayState, &cfg, &replayCam, &replayOSS, &home, &bg);
+		presentMenu(replayPOV, &replayState, &cfg, &replayCam, &sprs, &replayOSS, &home, &bg);
 	}
-	
+	UnloadRenderTexture(bg.target);
+	UnloadShader(bg.shader);
+	UnloadSprites(sprs);
 	CloseWindow();
 }

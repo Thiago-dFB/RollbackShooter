@@ -188,7 +188,7 @@ void NewNetworkedSession(std::string remoteAddress, unsigned short port, playeri
     connected = true;
 }
 
-void NetworkedMain(std::string remoteAddress, unsigned short port, playerid localPlayer)
+void NetworkedMain(const Sprites* sprs, std::string remoteAddress, unsigned short port, playerid localPlayer)
 {
     Camera3D cam = initialCamera();
     ggState = initialState(&cfg);
@@ -281,7 +281,7 @@ void NetworkedMain(std::string remoteAddress, unsigned short port, playerid loca
         gameInfoOSS << "Round Countdown : " << (ggState.roundCountdown / 60) << "." << (ggState.roundCountdown % 60) << std::endl;
         gameInfoOSS << connectionString;
 
-        semaphoreIdleTime = present(pov, &ggState, &cfg, &cam, &gameInfoOSS);
+        semaphoreIdleTime = present(pov, &ggState, &cfg, &cam, sprs, &gameInfoOSS);
     }
     //exit session
     if (ggpo)

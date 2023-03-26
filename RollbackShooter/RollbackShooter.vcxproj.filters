@@ -58,5 +58,16 @@
     <None Include="shader\bg.fs">
       <Filter>Resource Files</Filter>
     </None>
+    <None Include="shader\bill.fs">
+      <Filter>Resource Files</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="sprite\projs.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="sprite\radius.png">
+      <Filter>Resource Files</Filter>
+    </Image>
   </ItemGroup>
 </Project>

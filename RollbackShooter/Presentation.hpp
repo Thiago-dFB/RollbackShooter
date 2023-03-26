@@ -14,6 +14,35 @@ const int screenHeight = 720;
 const int centerX = screenWidth / 2;
 const int centerY = screenHeight / 2;
 
+struct Sprites
+{
+	Texture2D projs;
+	Shader billShader;
+	struct {
+		Model plane;
+		Texture2D texture;
+	} radius;
+};
+
+Sprites LoadSprites()
+{
+	Sprites sprs;
+	sprs.projs = LoadTexture("sprite/projs.png");
+	sprs.billShader = LoadShader(0, "shader/bill.fs");
+	sprs.radius.texture = LoadTexture("sprite/radius.png");
+	sprs.radius.plane = LoadModelFromMesh(GenMeshPlane(1.0f, 1.0f, 1, 1));
+	sprs.radius.plane.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = sprs.radius.texture;
+	return sprs;
+}
+
+void UnloadSprites(Sprites sprs)
+{
+	UnloadTexture(sprs.projs);
+	UnloadShader(sprs.billShader);
+	UnloadTexture(sprs.radius.texture);
+	UnloadModel(sprs.radius.plane);
+}
+
 enum POV
 {
 	Spectator = 0,
@@ -79,7 +108,7 @@ void drawBars(const Player* player, const Config* cfg)
 	}
 }
 
-void gameScene(POV pov, const GameState * state, const Config * cfg, const Camera3D * cam)
+void gameScene(POV pov, const GameState* state, const Config* cfg, const Camera3D* cam, const Sprites* sprs)
 {
 	BeginMode3D(*cam);
 	{
@@ -102,6 +131,7 @@ void gameScene(POV pov, const GameState * state, const Config * cfg, const Camer
 		{
 			DrawRay(Ray{ fromDetVec2(state->p2.pos), fromDetVec2(state->p2.dir) }, BLUE);
 		}
+
 		//draw projectiles
 		bool showCombos = false;
 		int framesToAltShot = 0;
@@ -116,34 +146,49 @@ void gameScene(POV pov, const GameState * state, const Config * cfg, const Camer
 			framesToAltShot = state->p2.pushdown.top() == Charging ? (cfg->chargeDuration - state->p2.chargeCount) : cfg->chargeDuration;
 			break;
 		}
+		BeginShaderMode(sprs->billShader);
 		for (auto it = state->projs.begin(); it != state->projs.end(); ++it)
 		{
 			Vec2 futurePos = v2::add(it->pos, v2::scalarMult(it->vel, num_det{ framesToAltShot }));
 			bool withinReach = v2::length(futurePos) < cfg->arenaRadius;
+			//draw projectile
 			switch (it->owner)
 			{
 			case 1:
-				DrawCylinderWires(
-					fromDetVec2(it->pos),
-					fromDetNum(cfg->projRadius),
-					fromDetNum(cfg->projRadius),
-					.5f, 10, RED);
+				DrawBillboardPro(*cam,
+					sprs->projs,
+					Rectangle{ 0,0,32,32 }, //source rect
+					fromDetVec2(it->pos, 1.0f), //world pos
+					Vector3{ 0.0f,1.0f,0.0f }, //up vector
+					Vector2{ fromDetNum(cfg->projRadius) * 4, fromDetNum(cfg->projRadius) * 4 }, //size (proj size is defined by circle with half dimensions of sprite)
+					Vector2{ .5f,.5f }, //anchor for rotation and scaling
+					0.0f, //rotation (TODO rotate projectile for nice effect)
+					WHITE);
 				break;
 			case 2:
-				DrawCylinderWires(
-					fromDetVec2(it->pos),
-					fromDetNum(cfg->projRadius),
-					fromDetNum(cfg->projRadius),
-					.5f, 10, BLUE);
+				DrawBillboardPro(*cam,
+					sprs->projs,
+					Rectangle{ 32,0,32,32 }, //source rect
+					fromDetVec2(it->pos, 1.0f), //world pos
+					Vector3{ 0.0f,1.0f,0.0f }, //up vector
+					Vector2{ fromDetNum(cfg->projRadius) * 4, fromDetNum(cfg->projRadius) * 4 }, //size (proj size is defined by circle with half dimensions of sprite)
+					Vector2{ .5f,.5f }, //anchor for rotation and scaling
+					0.0f, //rotation (TODO rotate projectile for nice effect)
+					WHITE);
 				break;
 			}
+			//draw future position and combo radius
 			if (withinReach)
 			{
-				DrawCylinderWires(
-					fromDetVec2(futurePos),
-					fromDetNum(cfg->projRadius),
-					fromDetNum(cfg->projRadius),
-					.5f, 10, PURPLE);
+				DrawBillboardPro(*cam,
+					sprs->projs,
+					Rectangle{ 64,0,32,32 }, //source rect
+					fromDetVec2(futurePos, 1.0f), //world pos
+					Vector3{ 0.0f,1.0f,0.0f }, //up vector
+					Vector2{ fromDetNum(cfg->projRadius) * 2, fromDetNum(cfg->projRadius) * 2 }, //size
+					Vector2{ .5f,.5f }, //anchor for rotation and scaling
+					0.0f,
+					WHITE);
 				if (showCombos)
 				{
 					DrawCylinderWires(
@@ -153,7 +198,14 @@ void gameScene(POV pov, const GameState * state, const Config * cfg, const Camer
 						.1f, 10, PURPLE);
 				}
 			}
+			//draw ground radius
+			DrawModel(
+				sprs->radius.plane,
+				fromDetVec2(it->pos, .01f),
+				fromDetNum(cfg->projRadius) * 2,
+				WHITE);
 		}
+		EndShaderMode();
 		DrawCylinderWires(
 			Vector3{ 0.0f, 0.0f, 0.0f },
 			fromDetNum(cfg->arenaRadius + cfg->playerRadius),
@@ -167,7 +219,7 @@ void gameScene(POV pov, const GameState * state, const Config * cfg, const Camer
 //MATCH PRESENTATION
 
 //returns semaphore idle time
-double present(POV pov, const GameState* state, const Config* cfg, Camera3D* cam, std::ostringstream* gameInfoOSS)
+double present(POV pov, const GameState* state, const Config* cfg, Camera3D* cam, const Sprites* sprs, std::ostringstream* gameInfoOSS)
 {
 	setCamera(cam, NULL, state, pov);
 	
@@ -175,29 +227,29 @@ double present(POV pov, const GameState* state, const Config* cfg, Camera3D* cam
 
 	ClearBackground(RAYWHITE);
 
-	gameScene(pov, state, cfg, cam);
+	gameScene(pov, state, cfg, cam, sprs);
 
 	//crosshair
 	DrawLineEx(
-		Vector2{ centerX - 20 , centerY - 100 },
-		Vector2{ centerX - 5, centerY - 100 },
-		5.f, RED);
+		Vector2{ centerX - 20 , centerY - 150 },
+		Vector2{ centerX - 5, centerY - 150 },
+		3.f, RED);
 	DrawLineEx(
-		Vector2{ centerX + 5 , centerY - 100 },
-		Vector2{ centerX + 20, centerY - 100 },
-		5.f, RED);
+		Vector2{ centerX + 5 , centerY - 150 },
+		Vector2{ centerX + 20, centerY - 150 },
+		3.f, RED);
 	DrawLineEx(
-		Vector2{ centerX, centerY - 120 },
-		Vector2{ centerX, centerY - 105 },
-		5.f, RED);
+		Vector2{ centerX, centerY - 170 },
+		Vector2{ centerX, centerY - 155 },
+		3.f, RED);
 	DrawLineEx(
-		Vector2{ centerX, centerY - 95 },
-		Vector2{ centerX, centerY - 80 },
-		5.f, RED);
+		Vector2{ centerX, centerY - 145 },
+		Vector2{ centerX, centerY - 130 },
+		3.f, RED);
 	DrawLineEx(
+		Vector2{ centerX, centerY - 70 },
 		Vector2{ centerX, centerY - 20 },
-		Vector2{ centerX, centerY + 20 },
-		5.f, RED);
+		3.f, RED);
 
 	if (pov == Player1)
 		drawBars(&state->p1, cfg);
@@ -236,7 +288,7 @@ struct BGInfo
 	Shader shader;
 };
 
-void presentMenu(POV pov, const GameState* state, const Config* cfg, Camera3D* cam, std::ostringstream* gameInfoOSS, HomeInfo* home, BGInfo* bg)
+void presentMenu(POV pov, const GameState* state, const Config* cfg, Camera3D* cam, const Sprites* sprs, std::ostringstream* gameInfoOSS, HomeInfo* home, BGInfo* bg)
 {
 	setCamera(cam, &home->lazyCam, state, pov);
 
@@ -246,7 +298,7 @@ void presentMenu(POV pov, const GameState* state, const Config* cfg, Camera3D* c
 
 	BeginTextureMode(bg->target);
 	ClearBackground(RAYWHITE);
-	gameScene(pov, state, cfg, cam);
+	gameScene(pov, state, cfg, cam, sprs);
 	EndTextureMode();
 
 	if (home->homeScreen)
