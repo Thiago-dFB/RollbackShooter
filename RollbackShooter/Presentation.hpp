@@ -27,20 +27,20 @@ Camera3D initialCamera()
 	cam.position = Vector3{ 0.0f, 0.0f, 0.0f };
 	cam.target = Vector3{ 0.0f, 0.0f, 0.0f };
 	cam.up = Vector3{ 0.0f, 1.0f, 0.0f };
-	cam.fovy = 30.0f;
+	cam.fovy = 70.0f;
 	cam.projection = CAMERA_PERSPECTIVE;
 	return cam;
 }
 
 void setCamera(Camera3D* cam, Vec2* lazyCam, const GameState* state, POV pov)
 {
-	num_det camBack{ -15 };
-	float camHeight = 8;
-	num_det tgtFront{ 10 };
+	num_det camBack{ -8 };
+	float camHeight = 7;
+	num_det tgtFront{ 3 };
 	float tgtHeight = 0;
 	num_det laziness{ 0.2 };
-	float specHeight = 9;
-	num_det standBackMult{ 3 };
+	float specHeight = 6;
+	num_det standBackMult{ 1.5 };
 
 	switch (pov)
 	{
