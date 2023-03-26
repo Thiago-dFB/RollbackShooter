@@ -152,6 +152,7 @@ void NewNetworkedSession(std::string remoteAddress, unsigned short localPort, pl
         ggP1.type = GGPO_PLAYERTYPE_LOCAL;
         ggP2.type = GGPO_PLAYERTYPE_REMOTE;
         strcpy_s(ggP2.u.remote.ip_address, remoteAddress.c_str());
+        ggP2.u.remote.port = localPort;
         ggRes = ggpo_add_player(ggpo, &ggP1, &ggHandle1);
         ggRes = ggpo_add_player(ggpo, &ggP2, &ggHandle2);
         ggpo_set_frame_delay(ggpo, ggHandle1, 0);
@@ -161,6 +162,7 @@ void NewNetworkedSession(std::string remoteAddress, unsigned short localPort, pl
         ggP2.type = GGPO_PLAYERTYPE_LOCAL;
         ggP1.type = GGPO_PLAYERTYPE_REMOTE;
         strcpy_s(ggP1.u.remote.ip_address, remoteAddress.c_str());
+        ggP1.u.remote.port = localPort;
         ggRes = ggpo_add_player(ggpo, &ggP2, &ggHandle2);
         ggRes = ggpo_add_player(ggpo, &ggP1, &ggHandle1);
         ggpo_set_frame_delay(ggpo, ggHandle2, 0);
