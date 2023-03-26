@@ -171,21 +171,6 @@ void NewNetworkedSession(std::string remoteAddress, unsigned short localPort, pl
     connected = true;
 }
 
-void Disconnect()
-{
-    GGPOErrorCode ggRes = ggpo_disconnect_player(ggpo, localHandle);
-    connected = false;
-}
-
-void ExitNetworkedSession()
-{
-    if (ggpo)
-    {
-        ggpo_close_session(ggpo);
-        ggpo = NULL;
-    }
-}
-
 void NetworkedMain(std::string remoteAddress, unsigned short localPort, playerid localPlayer)
 {
     Camera3D cam = initialCamera();
@@ -197,6 +182,12 @@ void NetworkedMain(std::string remoteAddress, unsigned short localPort, playerid
     NewNetworkedSession(remoteAddress, localPort, localPlayer);
     while (connected && !WindowShouldClose() && !endCondition(&ggState, &cfg))
     {
+        if (IsKeyPressed(KEY_F10))
+        {
+            GGPOErrorCode ggRes = ggpo_disconnect_player(ggpo, localHandle);
+            connected = false;
+        }
+
         //GGPO needs this time to execute rollbacks and send packets
         //try to give as much as you can without lagging the main loop
         int timeGivenToIdle = static_cast<int>(floor(semaphoreIdleTime * 1000)) - 1;
@@ -250,7 +241,12 @@ void NetworkedMain(std::string remoteAddress, unsigned short localPort, playerid
 
         semaphoreIdleTime = present(pov, &ggState, &cfg, &cam, &lazyCam, &gameInfoOSS);
     }
-    ExitNetworkedSession();
+    //exit session
+    if (ggpo)
+    {
+        ggpo_close_session(ggpo);
+        ggpo = NULL;
+    }
 }
 
 #endif

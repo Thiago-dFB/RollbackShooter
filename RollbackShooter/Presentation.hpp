@@ -37,7 +37,8 @@ void setCamera(Camera3D* cam, Vec2* lazyCam, const GameState* state, POV pov)
 	num_det tgtFront{ 10 };
 	float tgtHeight = 0;
 	num_det laziness{ 0.2 };
-	float specHeight = 6;
+	float specHeight = 9;
+	num_det standBackMult{ 3 };
 
 	switch (pov)
 	{
@@ -52,7 +53,7 @@ void setCamera(Camera3D* cam, Vec2* lazyCam, const GameState* state, POV pov)
 	case Spectator:
 		Vec2 midDist = v2::scalarDiv(v2::sub(state->p1.pos, state->p2.pos), num_det{ 2 });
 		Vec2 actionCenter = v2::add(state->p2.pos, midDist);
-		Vec2 standBack = v2::rotate(v2::scalarMult(midDist, num_det{ 1.5 }), -camBack.half_pi());
+		Vec2 standBack = v2::rotate(v2::scalarMult(midDist, standBackMult), -camBack.half_pi());
 		*lazyCam = v2::lerp(*lazyCam, v2::add(actionCenter, standBack), laziness);
 		cam->position = fromDetVec2(*lazyCam, specHeight);
 		cam->target = fromDetVec2(actionCenter, tgtHeight);

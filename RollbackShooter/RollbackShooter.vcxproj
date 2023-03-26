@@ -143,6 +143,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Config.hpp" />
+    <ClInclude Include="DummyScene.hpp" />
     <ClInclude Include="GameState.hpp" />
     <ClInclude Include="GGPOController.hpp" />
     <ClInclude Include="Input.hpp" />

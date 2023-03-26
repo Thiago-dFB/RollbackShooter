@@ -12,90 +12,91 @@
 #include "Player.hpp"
 #include "Presentation.hpp"
 #include "GGPOController.hpp"
+#include "DummyScene.hpp"
 
-enum LaunchMode
+enum MenuItem
 {
-	Home=0,
-	Replay=1,
-	Dummy=2,
-	Connect=3
+	Dummy=0,
+	ConnectP1=1,
+	ConnectP2=2
 };
 
 int main(int argc, char* argv[])
 {
-	LaunchMode launch = Home;
-	//TODO if I ever implement scene change this goes to a function just so it can leave scope naturally
+	bool homeScreen = true;
+	POV replayPOV = Spectator;
+	MenuItem selected = Dummy;
+	
 	auto launchOpt = toml::parse_file("RBST_launch.toml");
-	std::string mode = launchOpt["launchMode"].value_or("home");
-	if (mode.compare("replay") == 0)
-		launch = Replay;
-	else if (mode.compare("dummy") == 0)
-		launch = Dummy;
-	else if (mode.compare("connect") == 0)
-		launch = Connect;
 
 	InitWindow(screenWidth, screenHeight, "RBST");
 	SetTargetFPS(60);
 	SetWindowState(FLAG_WINDOW_ALWAYS_RUN);
 	DisableCursor();
 
-	if (launch == Connect)
-	{
-		std::string remoteAddress = launchOpt["Network"]["remoteAddress"].value_or("127.0.0.1");
-		unsigned short localPort = launchOpt["Network"]["localPort"].value_or(8001);
-		playerid localPlayer = launchOpt["Network"]["localPlayer"].value_or(1);
-		NetworkedMain(remoteAddress, localPort, localPlayer);
-	}
-	else
-	{
-		Camera3D cam = initialCamera();
-		Vec2 lazyCam = v2::zero();
-		POV replayPOV = Spectator;
-		GameState state = initialState(&cfg);
-		std::ostringstream gameInfoOSS;
-		double semaphoreIdleTime = 0;
+	std::string remoteAddress = launchOpt["Network"]["remoteAddress"].value_or("127.0.0.1");
+	unsigned short localPort = launchOpt["Network"]["localPort"].value_or(8001);
 
-		while (!WindowShouldClose() && !endCondition(&state, &cfg))
+	Camera3D replayCam = initialCamera();
+	Vec2 replayLazyCam = v2::zero();
+	GameState replayState = initialState(&cfg);
+	std::ostringstream replayOSS;
+
+	//home screen
+	while (!WindowShouldClose())
+	{
+		//menu controls
+		if (IsKeyDown(KEY_LEFT_CONTROL) && IsKeyPressed(KEY_V))
 		{
-			//process input
-			PlayerInput p1input = processInput(&inputBind);
-			PlayerInput p2Dummy{ None, Neutral, num_det {0} };
-			InputData input{ p1input,p2Dummy };
+			remoteAddress = std::string(GetClipboardText());
+		}
+		if (IsKeyPressed(KEY_RIGHT))
+		{
+			selected = static_cast<MenuItem>((selected + 1) % 3);
+		}
+		else if (IsKeyPressed(KEY_LEFT))
+		{
+			selected = static_cast<MenuItem>((selected + 2) % 3);
+		}
 
-			if (launch == Replay)
+		if (homeScreen)
+		{
+			if (IsKeyPressed(KEY_F1))
+				replayPOV = Player1;
+			else if (IsKeyPressed(KEY_F2))
+				replayPOV = Player2;
+			else if (IsKeyPressed(KEY_F3))
+				replayPOV = Spectator;
+		}
+
+		if (IsKeyPressed(KEY_ENTER)) {
+			switch (selected)
 			{
-				if (IsKeyPressed(inputBind.replayP1Key))
-					replayPOV = Player1;
-				else if (IsKeyPressed(inputBind.replayP2Key))
-					replayPOV = Player2;
-				else if (IsKeyPressed(inputBind.replaySpecKey))
-					replayPOV = Spectator;
+			case Dummy:
+				DummyMain();
+				break;
+			case ConnectP1:
+				NetworkedMain(remoteAddress, localPort, 1);
+				break;
+			case ConnectP2:
+				NetworkedMain(remoteAddress, localPort, 2);
+				break;
 			}
-
+		}
+		else
+		{
+			//TODO replay input
+			PlayerInput p1Input{ None, Neutral, num_det {0} };
+			PlayerInput p2Input{ None, Neutral, num_det {0} };
+			InputData input{ p1Input, p2Input };
 			//simulation
-			state = simulate(state, &cfg, input);
-
-			//secondary simulation (stateful)
-			// probably not doing it here lol
-
-			//secondary simulation (stateless)
-			POV pov;
-			if (launch == Dummy)
-				pov = Player1;
-			else
-				pov = replayPOV;
-
+			replayState = simulate(replayState, &cfg, input);
+			//secondary simulation
 			int currentFps = GetFPS();
-			gameInfoOSS.str("");
-			gameInfoOSS << "FPS: " << currentFps << std::endl;
-			gameInfoOSS << "Semaphore idle time: " << semaphoreIdleTime * 1000 << " ms" << std::endl;
-			gameInfoOSS << "P1 HP: " << state.health1 << "; ";
-			gameInfoOSS << "P2 HP: " << state.health2 << std::endl;
-			gameInfoOSS << "Round Phase: " << std::to_string(state.phase) << "; ";
-			gameInfoOSS << "Round Countdown : " << (state.roundCountdown / 60) << "." << (state.roundCountdown % 60) << std::endl;
-
+			replayOSS.str("");
+			replayOSS << "FPS: " << currentFps << std::endl;
 			//presentation
-			semaphoreIdleTime = present(pov, &state, &cfg, &cam, &lazyCam, &gameInfoOSS);
+			present(replayPOV, &replayState, &cfg, &replayCam, &replayLazyCam, &replayOSS);
 		}
 	}
 	

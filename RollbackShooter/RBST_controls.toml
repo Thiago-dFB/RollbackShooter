@@ -74,14 +74,14 @@ specKey = 292 #F3
 #
 # Space         = 32
 # Esc           = 256
-# Enter         = 257
+# Enter         = 257 (statically used for home menu confirm)
 # Tab           = 258
 # Backspace     = 259
 # Insert        = 260
 # Delete        = 261
 #
-# Right         = 262
-# Left          = 263
+# Right         = 262 (statically used for home menu)
+# Left          = 263 (statically used for home menu)
 # Down          = 264
 # Up            = 265
 #
@@ -95,16 +95,16 @@ specKey = 292 #F3
 # Print Screen  = 283
 # Pause         = 284
 #
-# F1            = 290
-# F2            = 291
-# F3            = 292
-# F4            = 293
+# F1            = 290 (statically used for Player 1 POV in replay)
+# F2            = 291 (statically used for Player 2 POV in replay)
+# F3            = 292 (statically used for Spectator POV in replay)
+# F4            = 293 (statically used for show/hide background replay)
 # F5            = 294
 # F6            = 295
 # F7            = 296
 # F8            = 297
 # F9            = 298
-# F10           = 299
+# F10           = 299 (statically used for disconnecting)
 # F11           = 300
 # F12           = 301
 #
