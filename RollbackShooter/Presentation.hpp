@@ -161,8 +161,8 @@ void gameScene(POV pov, const GameState* state, const Config* cfg, const Camera3
 					fromDetVec2(it->pos, 1.0f), //world pos
 					Vector3{ 0.0f,1.0f,0.0f }, //up vector
 					Vector2{ fromDetNum(cfg->projRadius) * 4, fromDetNum(cfg->projRadius) * 4 }, //size (proj size is defined by circle with half dimensions of sprite)
-					Vector2{ .5f,.5f }, //anchor for rotation and scaling
-					0.0f, //rotation (TODO rotate projectile for nice effect)
+					Vector2{ 0.0f, 0.0f }, //anchor for rotation and scaling
+					12*it->lifetime, //rotation (degrees per frame)
 					WHITE);
 				break;
 			case 2:
@@ -172,8 +172,8 @@ void gameScene(POV pov, const GameState* state, const Config* cfg, const Camera3
 					fromDetVec2(it->pos, 1.0f), //world pos
 					Vector3{ 0.0f,1.0f,0.0f }, //up vector
 					Vector2{ fromDetNum(cfg->projRadius) * 4, fromDetNum(cfg->projRadius) * 4 }, //size (proj size is defined by circle with half dimensions of sprite)
-					Vector2{ .5f,.5f }, //anchor for rotation and scaling
-					0.0f, //rotation (TODO rotate projectile for nice effect)
+					Vector2{ 0.0f, 0.0f }, //anchor for rotation and scaling
+					12*it->lifetime, //rotation (degrees per frame)
 					WHITE);
 				break;
 			}

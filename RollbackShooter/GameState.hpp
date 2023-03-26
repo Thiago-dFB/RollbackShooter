@@ -23,6 +23,7 @@ struct Projectile
 	Vec2 pos = v2::zero();
 	Vec2 vel = v2::zero();
 	playerid owner = 0;
+	int16 lifetime;
 };
 
 struct GameState
@@ -254,6 +255,7 @@ GameState simulate(GameState state, const Config* cfg, InputData input)
 		{
 			bool erased = false;
 			it->pos = v2::add(it->pos, it->vel);
+			it->lifetime++;
 			if (v2::length(it->pos) > cfg->arenaRadius)
 			{
 				state.projs.erase(it);
@@ -414,7 +416,7 @@ GameState simulate(GameState state, const Config* cfg, InputData input)
 				break;
 			case AttackInput::Shot:
 				if (state.p1.ammo < cfg->shotCost) break;
-				state.projs.push_back({ state.p1.pos, v2::scalarMult(state.p1.dir, cfg->projSpeed), 1 });
+				state.projs.push_back({ state.p1.pos, v2::scalarMult(state.p1.dir, cfg->projSpeed), 1, 0 });
 				state.p1.ammo = state.p1.ammo - cfg->shotCost;
 				break;
 			case AttackInput::AltShot:
@@ -463,7 +465,7 @@ GameState simulate(GameState state, const Config* cfg, InputData input)
 				break;
 			case AttackInput::Shot:
 				if (state.p2.ammo < cfg->shotCost) break;
-				state.projs.push_back({ state.p2.pos, v2::scalarMult(state.p2.dir, cfg->projSpeed), 1 });
+				state.projs.push_back({ state.p2.pos, v2::scalarMult(state.p2.dir, cfg->projSpeed), 2, 0 });
 				state.p2.ammo = state.p2.ammo - cfg->shotCost;
 				break;
 			case AttackInput::AltShot:
