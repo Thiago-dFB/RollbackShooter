@@ -9,8 +9,10 @@
 #include "Math.hpp"
 #include "GameState.hpp"
 
-const int screenWidth = 800;
-const int screenHeight = 600;
+const int screenWidth = 1280;
+const int screenHeight = 720;
+const int centerX = screenWidth / 2;
+const int centerY = screenHeight / 2;
 
 enum POV
 {
@@ -77,15 +79,8 @@ void drawBars(const Player* player, const Config* cfg)
 	}
 }
 
-//returns semaphore idle time
-double present(POV pov, const GameState* state, const Config* cfg, Camera3D* cam, Vec2* lazyCam, std::ostringstream* gameInfoOSS)
+void gameScene(POV pov, const GameState * state, const Config * cfg, const Camera3D * cam)
 {
-	setCamera(cam, lazyCam, state, pov);
-	
-	BeginDrawing();
-
-	ClearBackground(RAYWHITE);
-
 	BeginMode3D(*cam);
 	{
 		//draw players (and their alt shot direction if they're charging)
@@ -123,7 +118,7 @@ double present(POV pov, const GameState* state, const Config* cfg, Camera3D* cam
 		}
 		for (auto it = state->projs.begin(); it != state->projs.end(); ++it)
 		{
-			Vec2 futurePos = v2::add(it->pos, v2::scalarMult(it->vel, num_det{framesToAltShot}));
+			Vec2 futurePos = v2::add(it->pos, v2::scalarMult(it->vel, num_det{ framesToAltShot }));
 			bool withinReach = v2::length(futurePos) < cfg->arenaRadius;
 			switch (it->owner)
 			{
@@ -167,6 +162,42 @@ double present(POV pov, const GameState* state, const Config* cfg, Camera3D* cam
 		DrawGrid(10, static_cast<float>(cfg->arenaRadius) / 10.0f);
 	}
 	EndMode3D();
+}
+
+//MATCH PRESENTATION
+
+//returns semaphore idle time
+double present(POV pov, const GameState* state, const Config* cfg, Camera3D* cam, std::ostringstream* gameInfoOSS)
+{
+	setCamera(cam, NULL, state, pov);
+	
+	BeginDrawing();
+
+	ClearBackground(RAYWHITE);
+
+	gameScene(pov, state, cfg, cam);
+
+	//crosshair
+	DrawLineEx(
+		Vector2{ centerX - 20 , centerY - 100 },
+		Vector2{ centerX - 5, centerY - 100 },
+		5.f, RED);
+	DrawLineEx(
+		Vector2{ centerX + 5 , centerY - 100 },
+		Vector2{ centerX + 20, centerY - 100 },
+		5.f, RED);
+	DrawLineEx(
+		Vector2{ centerX, centerY - 120 },
+		Vector2{ centerX, centerY - 105 },
+		5.f, RED);
+	DrawLineEx(
+		Vector2{ centerX, centerY - 95 },
+		Vector2{ centerX, centerY - 80 },
+		5.f, RED);
+	DrawLineEx(
+		Vector2{ centerX, centerY - 20 },
+		Vector2{ centerX, centerY + 20 },
+		5.f, RED);
 
 	if (pov == Player1)
 		drawBars(&state->p1, cfg);
@@ -179,6 +210,111 @@ double present(POV pov, const GameState* state, const Config* cfg, Camera3D* cam
 	double beforeSemaphore = GetTime();
 	EndDrawing();
 	return GetTime() - beforeSemaphore;
+}
+
+//HOME SCREEN PRESENTATION
+
+enum MenuItem
+{
+	Dummy = 0,
+	ConnectP1 = 1,
+	ConnectP2 = 2
+};
+
+struct HomeInfo
+{
+	MenuItem selected = Dummy;
+	Vec2 lazyCam = v2::zero();
+	bool homeScreen = true;
+	std::string remoteAddress = "";
+	float freshUpdate = 0;
+};
+
+struct BGInfo
+{
+	RenderTexture2D target;
+	Shader shader;
+};
+
+void presentMenu(POV pov, const GameState* state, const Config* cfg, Camera3D* cam, std::ostringstream* gameInfoOSS, HomeInfo* home, BGInfo* bg)
+{
+	setCamera(cam, &home->lazyCam, state, pov);
+
+	BeginDrawing();
+
+	ClearBackground(RAYWHITE);
+
+	BeginTextureMode(bg->target);
+	ClearBackground(RAYWHITE);
+	gameScene(pov, state, cfg, cam);
+	EndTextureMode();
+
+	if (home->homeScreen)
+	{
+		BeginShaderMode(bg->shader);
+		// NOTE: Render texture must be y-flipped due to default OpenGL coordinates (left-bottom)
+		DrawTextureRec(
+			bg->target.texture,
+			Rectangle{ 0, 0, (float)bg->target.texture.width, (float)-bg->target.texture.height },
+			Vector2 { 0, 0 }, WHITE);
+		EndShaderMode();
+		
+		//TODO replace with grain noise texture
+		//DrawRectangle(0, 0, screenWidth, screenHeight, Color{ 0,0,0,64 });
+		
+		//TODO game logo
+
+		//MENU
+		float xCenter = screenWidth / 2;
+		float btnTop = screenHeight - 60;
+		float btnWidth = 240;
+		float btnHeight = 40;
+		float btnDist = 30;
+
+		float dummyX = xCenter - 3 * btnDist - 2 * btnWidth;
+		float p1X = xCenter - btnDist - btnWidth;
+		float p2X = xCenter + btnDist;
+		float addressX = xCenter + 3 * btnDist + btnWidth;
+		Rectangle dummyBtn = Rectangle{dummyX, btnTop, btnWidth, btnHeight };
+		Rectangle p1Btn = Rectangle{ p1X, btnTop, btnWidth, btnHeight };
+		Rectangle p2Btn = Rectangle{ p2X, btnTop, btnWidth, btnHeight };
+		Rectangle addressField = Rectangle{ addressX, btnTop, btnWidth, btnHeight };
+
+		Color dummyColor = home->selected == Dummy ? RED : GRAY;
+		Color p1Color = home->selected == Player1 ? RED : GRAY;
+		Color p2Color = home->selected == Player2 ? RED : GRAY;
+		Color addressColor = Color{
+			static_cast<unsigned char>(130 + home->freshUpdate * (0-130)),
+			static_cast<unsigned char>(130 + home->freshUpdate * (158-130)),
+			static_cast<unsigned char>(130 + home->freshUpdate * (47-130)),
+			255
+		};
+
+		DrawRectangleRec(dummyBtn, LIGHTGRAY);
+		DrawRectangleLinesEx(dummyBtn, 4, dummyColor);
+		DrawText("Start Dummy Match", dummyBtn.x + 10, dummyBtn.y + 10, 20, BLACK);
+		DrawRectangleRec(p1Btn, LIGHTGRAY);
+		DrawRectangleLinesEx(p1Btn, 4, p1Color);
+		DrawText("Connect as Player 1", p1Btn.x + 10, p1Btn.y + 10, 20, BLACK);
+		DrawRectangleRec(p2Btn, LIGHTGRAY);
+		DrawRectangleLinesEx(p2Btn, 4, p2Color);
+		DrawText("Connect as Player 2", p2Btn.x + 10, p2Btn.y + 10, 20, BLACK);
+		DrawRectangleRec(addressField, WHITE);
+		DrawRectangleLinesEx(addressField, 4, addressColor);
+		DrawText(home->remoteAddress.c_str(), addressField.x + 10, addressField.y + 10, 20, BLACK);
+		DrawText("Remote IP Address\nCtrl+V to paste it here", addressField.x, addressField.y - 50, 20, BLACK);
+	}
+	else
+	{
+		DrawTextureRec(
+			bg->target.texture,
+			Rectangle{ 0, 0, (float)bg->target.texture.width, (float)-bg->target.texture.height },
+			Vector2{ 0, 0 }, WHITE);
+	}
+
+	DrawText(gameInfoOSS->str().c_str(), 5, 5, 20, GRAY);
+
+	EndDrawing();
 }
 
 #endif // !RBST_PRESENTATION_HPP

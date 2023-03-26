@@ -55,5 +55,8 @@
     <None Include="RBST_launch.toml">
       <Filter>Resource Files</Filter>
     </None>
+    <None Include="shader\gauss.fs">
+      <Filter>Resource Files</Filter>
+    </None>
   </ItemGroup>
 </Project>

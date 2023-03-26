@@ -14,53 +14,43 @@
 #include "GGPOController.hpp"
 #include "DummyScene.hpp"
 
-enum MenuItem
-{
-	Dummy=0,
-	ConnectP1=1,
-	ConnectP2=2
-};
-
 int main(int argc, char* argv[])
 {
-	bool homeScreen = true;
-	POV replayPOV = Spectator;
-	MenuItem selected = Dummy;
-	
-	auto launchOpt = toml::parse_file("RBST_launch.toml");
-
 	InitWindow(screenWidth, screenHeight, "RBST");
 	SetTargetFPS(60);
 	SetWindowState(FLAG_WINDOW_ALWAYS_RUN);
 	DisableCursor();
 
-	std::string remoteAddress = launchOpt["Network"]["remoteAddress"].value_or("127.0.0.1");
+	HomeInfo home;
+	
+	auto launchOpt = toml::parse_file("RBST_launch.toml");
+	home.remoteAddress = launchOpt["Network"]["remoteAddress"].value_or("127.0.0.1");
 	unsigned short localPort = launchOpt["Network"]["localPort"].value_or(8001);
 
+	POV replayPOV = Spectator;
 	Camera3D replayCam = initialCamera();
-	Vec2 replayLazyCam = v2::zero();
 	GameState replayState = initialState(&cfg);
 	std::ostringstream replayOSS;
+
+	BGInfo bg;
+	bg.target = LoadRenderTexture(screenWidth, screenHeight);
+	bg.shader = LoadShader(0, "shader/gauss.fs");
 
 	//home screen
 	while (!WindowShouldClose())
 	{
-		//menu controls
-		if (IsKeyDown(KEY_LEFT_CONTROL) && IsKeyPressed(KEY_V))
+		home.freshUpdate = std::max(0.0f, home.freshUpdate - (1.0f / 60.0f));
+		
+		//show/hide background replay
+		if (IsKeyReleased(KEY_F4))
 		{
-			remoteAddress = std::string(GetClipboardText());
-		}
-		if (IsKeyPressed(KEY_RIGHT))
-		{
-			selected = static_cast<MenuItem>((selected + 1) % 3);
-		}
-		else if (IsKeyPressed(KEY_LEFT))
-		{
-			selected = static_cast<MenuItem>((selected + 2) % 3);
+			home.homeScreen = !home.homeScreen;
+			if (home.homeScreen) replayPOV = Spectator;
 		}
 
-		if (homeScreen)
+		if (!home.homeScreen)
 		{
+			//REPLAY CONTROLS
 			if (IsKeyPressed(KEY_F1))
 				replayPOV = Player1;
 			else if (IsKeyPressed(KEY_F2))
@@ -68,36 +58,60 @@ int main(int argc, char* argv[])
 			else if (IsKeyPressed(KEY_F3))
 				replayPOV = Spectator;
 		}
-
-		if (IsKeyPressed(KEY_ENTER)) {
-			switch (selected)
-			{
-			case Dummy:
-				DummyMain();
-				break;
-			case ConnectP1:
-				NetworkedMain(remoteAddress, localPort, 1);
-				break;
-			case ConnectP2:
-				NetworkedMain(remoteAddress, localPort, 2);
-				break;
-			}
-		}
 		else
 		{
-			//TODO replay input
-			PlayerInput p1Input{ None, Neutral, num_det {0} };
-			PlayerInput p2Input{ None, Neutral, num_det {0} };
-			InputData input{ p1Input, p2Input };
-			//simulation
-			replayState = simulate(replayState, &cfg, input);
-			//secondary simulation
-			int currentFps = GetFPS();
-			replayOSS.str("");
-			replayOSS << "FPS: " << currentFps << std::endl;
-			//presentation
-			present(replayPOV, &replayState, &cfg, &replayCam, &replayLazyCam, &replayOSS);
+			//MENU CONTROLS
+			if (IsKeyPressed(KEY_RIGHT))
+			{
+				home.selected = static_cast<MenuItem>((home.selected + 1) % 3);
+			}
+			else if (IsKeyPressed(KEY_LEFT))
+			{
+				home.selected = static_cast<MenuItem>((home.selected + 2) % 3);
+			}
+			if (IsKeyDown(KEY_LEFT_CONTROL) && IsKeyPressed(KEY_V))
+			{
+				home.remoteAddress = std::string(GetClipboardText());
+				home.freshUpdate = 1;
+			}
+
+			if (IsKeyPressed(KEY_ENTER)) {
+				switch (home.selected)
+				{
+				case Dummy:
+					DummyMain();
+					//back from match
+					replayState = initialState(&cfg);
+					home.lazyCam = v2::zero();
+					break;
+				case ConnectP1:
+					NetworkedMain(home.remoteAddress, localPort, 1);
+					//back from match
+					replayState = initialState(&cfg);
+					home.lazyCam = v2::zero();
+					break;
+				case ConnectP2:
+					NetworkedMain(home.remoteAddress, localPort, 2);
+					//back from match
+					replayState = initialState(&cfg);
+					home.lazyCam = v2::zero();
+					break;
+				}
+			}
 		}
+
+		//TODO replay input
+		PlayerInput p1Input{ None, Neutral, num_det {0} };
+		PlayerInput p2Input{ None, Neutral, num_det {0} };
+		InputData input{ p1Input, p2Input };
+		//simulation
+		replayState = simulate(replayState, &cfg, input);
+		//secondary simulation
+		int currentFps = GetFPS();
+		replayOSS.str("");
+		replayOSS << "FPS: " << currentFps << std::endl;
+		//presentation
+		presentMenu(replayPOV, &replayState, &cfg, &replayCam, &replayOSS, &home, &bg);
 	}
 	
 	CloseWindow();

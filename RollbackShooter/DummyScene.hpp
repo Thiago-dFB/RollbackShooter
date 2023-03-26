@@ -15,7 +15,6 @@
 void DummyMain()
 {
 	Camera3D cam = initialCamera();
-	Vec2 lazyCam = v2::zero();
 	GameState state = initialState(&cfg);
 	std::ostringstream gameInfoOSS;
 	double semaphoreIdleTime = 0;
@@ -50,7 +49,7 @@ void DummyMain()
 		gameInfoOSS << "Round Countdown : " << (state.roundCountdown / 60) << "." << (state.roundCountdown % 60) << std::endl;
 
 		//presentation
-		semaphoreIdleTime = present(Player1, &state, &cfg, &cam, &lazyCam, &gameInfoOSS);
+		semaphoreIdleTime = present(Player1, &state, &cfg, &cam, &gameInfoOSS);
 	}
 }
 

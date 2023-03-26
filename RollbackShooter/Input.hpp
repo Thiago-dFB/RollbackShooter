@@ -59,9 +59,6 @@ struct InputBindings
 	int altShotBtn = 6;
 	int dashKey = 0;
 	int dashBtn = 6;
-	int replayP1Key = 0;
-	int replayP2Key = 0;
-	int replaySpecKey = 0;
 };
 
 InputBindings readTOMLForBind()
@@ -87,10 +84,6 @@ InputBindings readTOMLForBind()
 	inputBind.dashKey = file["Attack"]["dashKey"].value_or(0);
 	inputBind.dashBtn = file["Attack"]["dashBtn"].value_or(6);
 
-	inputBind.replayP1Key = file["Replay"]["p1Key"].value_or(0);
-	inputBind.replayP2Key = file["Replay"]["p2Key"].value_or(0);
-	inputBind.replaySpecKey = file["Replay"]["specKey"].value_or(0);
-
 	return inputBind;
 }
 
@@ -100,22 +93,29 @@ const InputBindings inputBind = readTOMLForBind();
 
 PlayerInput processInput(const InputBindings* inputBind)
 {
-	PlayerInput input;
-	
-	input.mouse = IsWindowFocused() ? inputBind->sensitivity * num_det{ DEG2RAD * GetMouseDelta().x } : num_det{0};
+	if (IsWindowFocused())
+	{
+		PlayerInput input;
 
-	int8 direction = 5;
-	if (IsKeyDown(inputBind->forward)) direction = direction + 3;
-	if (IsKeyDown(inputBind->back)) direction = direction - 3;
-	if (IsKeyDown(inputBind->left)) --direction;
-	if (IsKeyDown(inputBind->right)) ++direction;
-	input.mov = static_cast<MoveInput>(direction);
+		input.mouse = inputBind->sensitivity * num_det{ DEG2RAD * GetMouseDelta().x };
 
-	if (IsMouseButtonPressed(inputBind->shotBtn) || IsKeyPressed(inputBind->shotKey)) input.atk = Shot;
-	if (IsMouseButtonPressed(inputBind->altShotBtn) || IsKeyPressed(inputBind->altShotKey)) input.atk = AltShot;
-	if (IsKeyPressed(inputBind->dashKey) || IsMouseButtonPressed(inputBind->dashBtn)) input.atk = Dash;
+		int8 direction = 5;
+		if (IsKeyDown(inputBind->forward)) direction = direction + 3;
+		if (IsKeyDown(inputBind->back)) direction = direction - 3;
+		if (IsKeyDown(inputBind->left)) --direction;
+		if (IsKeyDown(inputBind->right)) ++direction;
+		input.mov = static_cast<MoveInput>(direction);
 
-	return input;
+		if (IsMouseButtonPressed(inputBind->shotBtn) || IsKeyPressed(inputBind->shotKey)) input.atk = Shot;
+		if (IsMouseButtonPressed(inputBind->altShotBtn) || IsKeyPressed(inputBind->altShotKey)) input.atk = AltShot;
+		if (IsKeyPressed(inputBind->dashKey) || IsMouseButtonPressed(inputBind->dashBtn)) input.atk = Dash;
+
+		return input;
+	}
+	else
+	{
+		return PlayerInput{ None, Neutral, num_det{0} };
+	}
 }
 
 PlayerInput predictInput(PlayerInput prevInput)

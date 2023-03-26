@@ -15,9 +15,9 @@ roundTime = 100
 roundEndTime = 3
 
 [PlayerResources]
-ammoMax        = 120    #frames for ammo to fully fill
-shotCost       = 60
-altShotCost    = 120
+ammoMax        = 100    #frames for ammo to fully fill
+shotCost       = 50
+altShotCost    = 100
 staminaMax     = 150    #frames for stamina to fully fill
 dashCost       = 50
 
@@ -41,7 +41,7 @@ projCounterMultiply = "1.2"
 playerRadius = "0.5"
 grazeRadius  = "0.7"
 projRadius   = "0.3"
-comboRadius  = "3.0"
+comboRadius  = "6.0"
 arenaRadius  = "12.0"
 spawnRadius  = "10.0"   #distance of each player from the center
 

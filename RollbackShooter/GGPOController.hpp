@@ -174,7 +174,6 @@ void NewNetworkedSession(std::string remoteAddress, unsigned short localPort, pl
 void NetworkedMain(std::string remoteAddress, unsigned short localPort, playerid localPlayer)
 {
     Camera3D cam = initialCamera();
-    Vec2 lazyCam = v2::zero();
     ggState = initialState(&cfg);
     std::ostringstream gameInfoOSS;
     double semaphoreIdleTime = 0;
@@ -239,7 +238,7 @@ void NetworkedMain(std::string remoteAddress, unsigned short localPort, playerid
         gameInfoOSS << "Round Phase: " << std::to_string(ggState.phase) << "; ";
         gameInfoOSS << "Round Countdown : " << (ggState.roundCountdown / 60) << "." << (ggState.roundCountdown % 60) << std::endl;
 
-        semaphoreIdleTime = present(pov, &ggState, &cfg, &cam, &lazyCam, &gameInfoOSS);
+        semaphoreIdleTime = present(pov, &ggState, &cfg, &cam, &gameInfoOSS);
     }
     //exit session
     if (ggpo)

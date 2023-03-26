@@ -17,11 +17,6 @@ altFireBtn = 1  #RMB
 dashKey    = 32 #Space
 dashBtn    = 6
 
-[Replay]
-p1Key   = 290 #F1
-p2Key   = 291 #F2
-specKey = 292 #F3
-
 # MOUSE BUTTON CODES
 # Left Mouse Button       = 0
 # Right Mouse Button      = 1
