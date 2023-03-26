@@ -5,6 +5,7 @@
 //std
 #include <istream>
 #include <ostream>
+#include <stdio.h>
 #include <algorithm>
 //GGPO
 #include <ggponet.h>
@@ -19,6 +20,8 @@ GGPOSession* ggpo = NULL;
 GGPOPlayer ggP1, ggP2;
 GGPOPlayerHandle ggHandle1, ggHandle2, localHandle;
 bool connected = false;
+int framesAheadPenalty = -1;
+std::string connectionString = "";
 
 //lifted from GGPO example
 //(itself lifted from a Wikipedia article about the algorithm? lul)
@@ -107,21 +110,32 @@ bool __cdecl rbst_on_event_callback(GGPOEvent* info)
     int progress;
     switch (info->code) {
     case GGPO_EVENTCODE_CONNECTED_TO_PEER:
+        connectionString.insert(0, "[NET]Succesfully connected!\n");
         break;
     case GGPO_EVENTCODE_SYNCHRONIZING_WITH_PEER:
+        progress = info->u.synchronizing.count;
+        char txt[32];
+        sprintf_s(txt, "[NET]Synchronizing... %d\%\n", progress);
+        connectionString.insert(0, txt);
         break;
     case GGPO_EVENTCODE_SYNCHRONIZED_WITH_PEER:
+        connectionString.insert(0, "[NET]Succesfully synchronized!\n");
         break;
     case GGPO_EVENTCODE_RUNNING:
+        connectionString.insert(0, "[NET]Game can now proceed!\n");
         break;
     case GGPO_EVENTCODE_CONNECTION_INTERRUPTED:
-        connected = false;
         break;
     case GGPO_EVENTCODE_CONNECTION_RESUMED:
         break;
     case GGPO_EVENTCODE_DISCONNECTED_FROM_PEER:
+        connected = false;
         break;
     case GGPO_EVENTCODE_TIMESYNC:
+        //this game is ahead by n frames
+        //and as such will be penalized down by n*5 frames at 50FPS
+        framesAheadPenalty = 5 * info->u.timesync.frames_ahead;
+        SetTargetFPS(50);
         break;
     }
     return true;
@@ -183,6 +197,12 @@ void NetworkedMain(std::string remoteAddress, unsigned short localPort, playerid
     NewNetworkedSession(remoteAddress, localPort, localPlayer);
     while (connected && !WindowShouldClose() && !endCondition(&ggState, &cfg))
     {
+        framesAheadPenalty = std::max(-1, framesAheadPenalty - 1);
+        if (framesAheadPenalty == 0)
+        {
+            SetTargetFPS(60);
+        }
+        
         if (IsKeyPressed(KEY_F10))
         {
             GGPOErrorCode ggRes = ggpo_disconnect_player(ggpo, localHandle);
@@ -239,6 +259,7 @@ void NetworkedMain(std::string remoteAddress, unsigned short localPort, playerid
         gameInfoOSS << "P2 HP: " << ggState.health2 << std::endl;
         gameInfoOSS << "Round Phase: " << std::to_string(ggState.phase) << "; ";
         gameInfoOSS << "Round Countdown : " << (ggState.roundCountdown / 60) << "." << (ggState.roundCountdown % 60) << std::endl;
+        gameInfoOSS << connectionString;
 
         semaphoreIdleTime = present(pov, &ggState, &cfg, &cam, &gameInfoOSS);
     }
