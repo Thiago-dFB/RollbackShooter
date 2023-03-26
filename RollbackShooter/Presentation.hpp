@@ -22,16 +22,79 @@ struct Sprites
 		Model plane;
 		Texture2D texture;
 	} radius;
+	struct {
+		struct {
+			Model path;
+			Texture2D texture;
+			Shader shader;
+			int scroll;
+		} charge;
+		struct {
+			Model path;
+			Texture2D texture;
+		} hitscanRed;
+		struct {
+			Model path;
+			Texture2D texture;
+		} hitscanBlue;
+	} path;
 };
+
+
+static Mesh GenMeshPath()
+{
+	Mesh mesh = { 0 };
+	mesh.triangleCount = 2;
+	mesh.vertexCount = 4;
+	mesh.vertices  = (float*)MemAlloc(mesh.vertexCount * 3 * sizeof(float));
+	mesh.texcoords = (float*)MemAlloc(mesh.vertexCount * 2 * sizeof(float));
+	mesh.normals   = (float*)MemAlloc(mesh.vertexCount * 3 * sizeof(float));
+	mesh.indices   = (unsigned short*)MemAlloc(mesh.triangleCount * 3 * sizeof(unsigned short));
+
+	mesh.vertices[0] = 0;    mesh.vertices[1]  = 0; mesh.vertices[2]  = -0.5;
+	mesh.vertices[3] = 0;    mesh.vertices[4]  = 0; mesh.vertices[5]  = 0.5;
+	mesh.vertices[6] = 1000; mesh.vertices[7]  = 0; mesh.vertices[8]  = -0.5;
+	mesh.vertices[9] = 1000; mesh.vertices[10] = 0; mesh.vertices[11] = 0.5;
+	mesh.normals[0] = 0; mesh.normals[1]  = 1; mesh.normals[2]  = 0;
+	mesh.normals[3] = 0; mesh.normals[4]  = 1; mesh.normals[5]  = 0;
+	mesh.normals[6] = 0; mesh.normals[7]  = 1; mesh.normals[8]  = 0;
+	mesh.normals[9] = 0; mesh.normals[10] = 1; mesh.normals[11] = 0;
+	mesh.texcoords[0] = 0; mesh.texcoords[1] = 0;
+	mesh.texcoords[2] = 0; mesh.texcoords[3] = 1;
+	mesh.texcoords[4] = 1; mesh.texcoords[5] = 0;
+	mesh.texcoords[6] = 1; mesh.texcoords[7] = 1;
+
+	mesh.indices[0] = 0; mesh.indices[1] = 1; mesh.indices[2] = 3;
+	mesh.indices[3] = 0; mesh.indices[4] = 3; mesh.indices[5] = 2;
+
+	UploadMesh(&mesh, false);
+
+	return mesh;
+}
 
 Sprites LoadSprites()
 {
 	Sprites sprs;
 	sprs.projs = LoadTexture("sprite/projs.png");
 	sprs.billShader = LoadShader(0, "shader/bill.fs");
+
 	sprs.radius.texture = LoadTexture("sprite/radius.png");
 	sprs.radius.plane = LoadModelFromMesh(GenMeshPlane(1.0f, 1.0f, 1, 1));
 	sprs.radius.plane.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = sprs.radius.texture;
+
+	sprs.path.charge.shader = LoadShader(0,"shader/path.fs");
+	sprs.path.charge.scroll = GetShaderLocation(sprs.path.charge.shader, "scroll");
+	sprs.path.charge.texture = LoadTexture("sprite/charge.png");
+	sprs.path.charge.path = LoadModelFromMesh(GenMeshPath());
+	sprs.path.charge.path.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = sprs.path.charge.texture;
+	sprs.path.charge.path.materials[0].shader = sprs.path.charge.shader;
+	sprs.path.hitscanRed.texture = LoadTexture("sprite/hitscanRed.png");
+	sprs.path.hitscanRed.path = LoadModelFromMesh(GenMeshPath());
+	sprs.path.hitscanRed.path.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = sprs.path.hitscanRed.texture;
+	sprs.path.hitscanBlue.texture = LoadTexture("sprite/hitscanBlue.png");
+	sprs.path.hitscanBlue.path = LoadModelFromMesh(GenMeshPath());
+	sprs.path.hitscanBlue.path.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = sprs.path.hitscanBlue.texture;
+
 	return sprs;
 }
 
@@ -41,6 +104,13 @@ void UnloadSprites(Sprites sprs)
 	UnloadShader(sprs.billShader);
 	UnloadTexture(sprs.radius.texture);
 	UnloadModel(sprs.radius.plane);
+	UnloadShader(sprs.path.charge.shader);
+	UnloadTexture(sprs.path.charge.texture);
+	UnloadModel(sprs.path.charge.path);
+	UnloadTexture(sprs.path.hitscanRed.texture);
+	UnloadModel(sprs.path.hitscanRed.path);
+	UnloadTexture(sprs.path.hitscanBlue.texture);
+	UnloadModel(sprs.path.hitscanBlue.path);
 }
 
 enum POV
@@ -118,18 +188,62 @@ void gameScene(POV pov, const GameState* state, const Config* cfg, const Camera3
 			fromDetNum(cfg->playerRadius),
 			fromDetNum(cfg->playerRadius),
 			1.0f, 10, RED);
-		if (state->p1.pushdown.top() == PState::Charging)
-		{
-			DrawRay(Ray{ fromDetVec2(state->p1.pos), fromDetVec2(state->p1.dir) }, RED);
-		}
 		DrawCylinderWires(
 			fromDetVec2(state->p2.pos),
 			fromDetNum(cfg->playerRadius),
 			fromDetNum(cfg->playerRadius),
 			1.0f, 10, BLUE);
+
+		//draw charge paths
+		if (state->p1.pushdown.top() == PState::Charging)
+		{
+			float angle = RAD2DEG * angleFromDetVec2(state->p1.dir);
+			float divert = 1.0f - (static_cast<float>(state->p1.chargeCount) / static_cast<float>(cfg->chargeDuration));
+			float scroll = (divert * divert);
+			SetShaderValue(sprs->path.charge.shader, sprs->path.charge.scroll, &scroll, SHADER_UNIFORM_FLOAT);
+			DrawModelEx(sprs->path.charge.path,
+				fromDetVec2(state->p1.pos, .01f),
+				Vector3{ 0,-1,0 },
+				angle,
+				Vector3{ 1,1,.25 },
+				WHITE);
+			DrawModelEx(sprs->path.charge.path,
+				fromDetVec2(state->p1.pos, .005f),
+				Vector3{ 0,-1,0 },
+				angle + (divert * 30),
+				Vector3{ 1,1,.1 },
+				WHITE);
+			DrawModelEx(sprs->path.charge.path,
+				fromDetVec2(state->p1.pos, .005f),
+				Vector3{ 0,-1,0 },
+				angle - (divert * 30),
+				Vector3{ 1,1,.1 },
+				WHITE);
+		}
 		if (state->p2.pushdown.top() == PState::Charging)
 		{
-			DrawRay(Ray{ fromDetVec2(state->p2.pos), fromDetVec2(state->p2.dir) }, BLUE);
+			float angle = RAD2DEG * angleFromDetVec2(state->p2.dir);
+			float divert = 1.0f - (static_cast<float>(state->p2.chargeCount) / static_cast<float>(cfg->chargeDuration));
+			float scroll = (divert * divert);
+			SetShaderValue(sprs->path.charge.shader, sprs->path.charge.scroll, &scroll, SHADER_UNIFORM_FLOAT);
+			DrawModelEx(sprs->path.charge.path,
+				fromDetVec2(state->p1.pos, .01f),
+				Vector3{ 0,-1,0 },
+				angle,
+				Vector3{ 1,1,.25 },
+				WHITE);
+			DrawModelEx(sprs->path.charge.path,
+				fromDetVec2(state->p1.pos, .005f),
+				Vector3{ 0,-1,0 },
+				angle + (divert * 30),
+				Vector3{ 1,1,.1 },
+				WHITE);
+			DrawModelEx(sprs->path.charge.path,
+				fromDetVec2(state->p1.pos, .005f),
+				Vector3{ 0,-1,0 },
+				angle - (divert * 30),
+				Vector3{ 1,1,.1 },
+				WHITE);
 		}
 
 		//draw projectiles

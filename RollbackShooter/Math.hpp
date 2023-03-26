@@ -148,4 +148,9 @@ inline float fromDetNum(num_det num)
 	return static_cast<float>(num);
 }
 
+inline float angleFromDetVec2(Vec2 vec)
+{
+	return atan2(static_cast<float>(vec.y), static_cast<float>(vec.x));
+}
+
 #endif

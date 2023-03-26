@@ -13,6 +13,12 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="Resource Files\sprite">
+      <UniqueIdentifier>{9af345f6-4846-480b-aaca-94aca3294948}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resource Files\shader">
+      <UniqueIdentifier>{04b96e3d-def3-480c-8065-07df3b072040}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Main.cpp">
@@ -56,18 +62,30 @@
       <Filter>Resource Files</Filter>
     </None>
     <None Include="shader\bg.fs">
-      <Filter>Resource Files</Filter>
+      <Filter>Resource Files\shader</Filter>
     </None>
     <None Include="shader\bill.fs">
-      <Filter>Resource Files</Filter>
+      <Filter>Resource Files\shader</Filter>
+    </None>
+    <None Include="shader\path.fs">
+      <Filter>Resource Files\shader</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>
     <Image Include="sprite\projs.png">
-      <Filter>Resource Files</Filter>
+      <Filter>Resource Files\sprite</Filter>
     </Image>
     <Image Include="sprite\radius.png">
-      <Filter>Resource Files</Filter>
+      <Filter>Resource Files\sprite</Filter>
+    </Image>
+    <Image Include="sprite\charge.png">
+      <Filter>Resource Files\sprite</Filter>
+    </Image>
+    <Image Include="sprite\hitscanBlue.png">
+      <Filter>Resource Files\sprite</Filter>
+    </Image>
+    <Image Include="sprite\hitscanRed.png">
+      <Filter>Resource Files\sprite</Filter>
     </Image>
   </ItemGroup>
 </Project>

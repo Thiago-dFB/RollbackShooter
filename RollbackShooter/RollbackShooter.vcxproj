@@ -167,8 +167,20 @@
     <None Include="shader\bill.fs">
       <DeploymentContent>true</DeploymentContent>
     </None>
+    <None Include="shader\path.fs">
+      <DeploymentContent>true</DeploymentContent>
+    </None>
   </ItemGroup>
   <ItemGroup>
+    <Image Include="sprite\charge.png">
+      <DeploymentContent>true</DeploymentContent>
+    </Image>
+    <Image Include="sprite\hitscanBlue.png">
+      <DeploymentContent>true</DeploymentContent>
+    </Image>
+    <Image Include="sprite\hitscanRed.png">
+      <DeploymentContent>true</DeploymentContent>
+    </Image>
     <Image Include="sprite\projs.png">
       <DeploymentContent>true</DeploymentContent>
     </Image>
