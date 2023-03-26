@@ -25,7 +25,7 @@ int main(int argc, char* argv[])
 	
 	auto launchOpt = toml::parse_file("RBST_launch.toml");
 	home.remoteAddress = launchOpt["Network"]["remoteAddress"].value_or("127.0.0.1");
-	unsigned short localPort = launchOpt["Network"]["localPort"].value_or(8001);
+	unsigned short port = launchOpt["Network"]["port"].value_or(8001);
 
 	POV replayPOV = Spectator;
 	Camera3D replayCam = initialCamera();
@@ -85,13 +85,13 @@ int main(int argc, char* argv[])
 					home.lazyCam = v2::zero();
 					break;
 				case ConnectP1:
-					NetworkedMain(home.remoteAddress, localPort, 1);
+					NetworkedMain(home.remoteAddress, port, 1);
 					//back from match
 					replayState = initialState(&cfg);
 					home.lazyCam = v2::zero();
 					break;
 				case ConnectP2:
-					NetworkedMain(home.remoteAddress, localPort, 2);
+					NetworkedMain(home.remoteAddress, port, 2);
 					//back from match
 					replayState = initialState(&cfg);
 					home.lazyCam = v2::zero();

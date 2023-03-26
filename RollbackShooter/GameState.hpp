@@ -398,7 +398,7 @@ GameState simulate(GameState state, const Config* cfg, InputData input)
 				state.p1.stunned = false;
 			}
 			//cancel your next move nevertheless
-			input.p1Input.atk == AttackInput::None;
+			input.p1Input.atk = AttackInput::None;
 		}
 		if (state.p1.pushdown.top() == PState::Default)
 		{
@@ -447,7 +447,7 @@ GameState simulate(GameState state, const Config* cfg, InputData input)
 				state.p2.stunned = false;
 			}
 			//cancel your next move nevertheless
-			input.p2Input.atk == AttackInput::None;
+			input.p2Input.atk = AttackInput::None;
 		}
 		if (state.p2.pushdown.top() == PState::Default)
 		{

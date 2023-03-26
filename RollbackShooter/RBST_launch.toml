@@ -1,6 +1,6 @@
 [Network]
 remoteAddress = "127.0.0.1"
-localPort = 8001
+port = 8001
 
 [Replay]
 replayFile = "demo.rbst"
