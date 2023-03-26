@@ -21,6 +21,7 @@ GGPOPlayerHandle ggHandle1, ggHandle2, localHandle;
 bool connected = false;
 int framesAheadPenalty = -1;
 std::string connectionString = "";
+long confirmFrame = 0;
 
 //lifted from GGPO example
 //(itself lifted from a Wikipedia article about the algorithm? lul)
@@ -76,6 +77,7 @@ bool __cdecl rbst_advance_frame_callback(int)
 bool __cdecl rbst_load_game_state_callback(unsigned char* buffer, int len)
 {
     memcpy(&ggState, buffer, len);
+    confirmFrame = ggState.frame;
     return true;
 }
 
@@ -192,14 +194,27 @@ void NetworkedMain(std::string remoteAddress, unsigned short port, playerid loca
     ggState = initialState(&cfg);
     std::ostringstream gameInfoOSS;
     double semaphoreIdleTime = 0;
+    long latestConfFrame = 0;
+    long prevConfFrame = 0;
 
     NewNetworkedSession(remoteAddress, port, localPlayer);
     while (connected && !WindowShouldClose() && !endCondition(&ggState, &cfg))
     {
+        //restore framerate to 60FPS after time sync penalty
         framesAheadPenalty = std::max(-1, framesAheadPenalty - 1);
         if (framesAheadPenalty == 0)
         {
             SetTargetFPS(60);
+        }
+
+        //check if rollback ever comes back to a frame before the latest confirm one
+        if (confirmFrame < latestConfFrame)
+        {
+            prevConfFrame = confirmFrame;
+        }
+        else
+        {
+            latestConfFrame = confirmFrame;
         }
         
         if (IsKeyPressed(KEY_F10))
@@ -254,6 +269,12 @@ void NetworkedMain(std::string remoteAddress, unsigned short port, playerid loca
         gameInfoOSS.str("");
         gameInfoOSS << "FPS: " << currentFps << std::endl;
         gameInfoOSS << "Semaphore idle time: " << semaphoreIdleTime * 1000 << " ms" << std::endl;
+        gameInfoOSS << "Rollbacked frames:" << (ggState.frame - confirmFrame) << std::endl;
+        gameInfoOSS << "Latest confirm frame: " << latestConfFrame << std::endl;
+        if(prevConfFrame > 0)
+        {
+            gameInfoOSS << "ROLLBACK TO CONFIRM FRAME BEFORE LATEST DETECTED: " << prevConfFrame << std::endl;
+        }
         gameInfoOSS << "P1 HP: " << ggState.health1 << "; ";
         gameInfoOSS << "P2 HP: " << ggState.health2 << std::endl;
         gameInfoOSS << "Round Phase: " << std::to_string(ggState.phase) << "; ";
@@ -268,6 +289,10 @@ void NetworkedMain(std::string remoteAddress, unsigned short port, playerid loca
         ggpo_close_session(ggpo);
         ggpo = NULL;
     }
+    connected = false;
+    connectionString = "";
+    framesAheadPenalty = -1;
+    confirmFrame = 0;
 }
 
 #endif
