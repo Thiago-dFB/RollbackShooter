@@ -93,6 +93,7 @@ Sprites LoadSprites()
 	sprs.radius.texture = LoadTexture("sprite/radius.png");
 	sprs.radius.plane = LoadModelFromMesh(GenMeshPlane(1.0f, 1.0f, 1, 1));
 	sprs.radius.plane.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = sprs.radius.texture;
+	sprs.radius.plane.materials[0].shader = sprs.billShader;
 
 	sprs.path.charge.shader = LoadShader(0,"shader/path.fs");
 	sprs.path.charge.scroll = GetShaderLocation(sprs.path.charge.shader, "scroll");
@@ -213,27 +214,42 @@ void gameScene(POV pov, const GameState* state, const Config* cfg, const Camera3
 	{
 		//draw players (and their alt shot direction if they're charging)
 		BeginShaderMode(sprs->billShader);
+
 		Vec2 camAngle {
 			num_det{ cam->target.x - cam->position.x },
 			num_det{ cam->target.z - cam->position.z }
 		};
 		Vec2 camRight = v2::normalize(v2::rotate(camAngle, camAngle.x.half_pi()));
+
 		float p1Shake = 0, p2Shake = 0;
 		int p1State = 0, p2State = 0;
+		bool p1Mirror = false, p2Mirror = false;
 		if (state->p1.stunned)
 		{
 			p1State = 2;
 			p1Shake = state->p1.hitstopCount * GetRandomValue(-10, 10) / 300.0f;
+			p1Mirror = v2::dot(camRight, state->p1.vel) < num_det{ 0 };
 		}
-		else if (state->p1.pushdown.top() == Dashing) p1State = 1;
+		else if (state->p1.pushdown.top() == Dashing)
+		{
+			p1State = 1;
+			p1Mirror = v2::dot(camRight, state->p1.dashVel) < num_det{ 0 };
+		}
+		else p1Mirror = (!pov == Player1) && v2::dot(camRight, state->p1.dir) < num_det{ 0 };
+
 		if (state->p2.stunned)
 		{
 			p2State = 2;
 			p2Shake = state->p2.hitstopCount * GetRandomValue(-10, 10) / 300.0f;
+			p2Mirror = v2::dot(camRight, state->p2.vel) < num_det{ 0 };
 		}
-		else if (state->p2.pushdown.top() == Dashing) p2State = 1;
-		bool p1Mirror = v2::dot(camRight, state->p1.vel) < num_det{ 0 };
-		bool p2Mirror = v2::dot(camRight, state->p2.vel) < num_det{ 0 };
+		else if (state->p2.pushdown.top() == Dashing)
+		{
+			p2State = 1;
+			p2Mirror = v2::dot(camRight, state->p2.dashVel) < num_det{ 0 };
+		}
+		else p2Mirror = (!pov == Player2) && v2::dot(camRight, state->p2.dir) < num_det{ 0 };
+
 		//player sprites
 		DrawBillboardPro(*cam,
 			(p1Mirror ? sprs->charsFlipped : sprs->chars),
