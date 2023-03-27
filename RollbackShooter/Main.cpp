@@ -30,9 +30,8 @@ int main(int argc, char* argv[])
 	GameState replayState = initialState(&cfg);
 	std::ostringstream replayOSS;
 
-	BGInfo bg;
-	bg.target = LoadRenderTexture(screenWidth, screenHeight);
-	bg.shader = LoadShader(0, "shader/bg.fs");
+	home.bgTarget = LoadRenderTexture(screenWidth, screenHeight);
+	home.bgShader = LoadShader(0, "shader/bg.fs");
 	Sprites sprs = LoadSprites();
 
 	//home screen
@@ -101,10 +100,10 @@ int main(int argc, char* argv[])
 			replayOSS << "or F4 to go back to menu." << std::endl;
 		}
 		//presentation
-		presentMenu(replayPOV, &replayState, &cfg, &replayCam, &sprs, &replayOSS, &home, &bg);
+		presentMenu(replayPOV, &replayState, &cfg, &replayCam, &sprs, &replayOSS, &home);
 	}
-	UnloadRenderTexture(bg.target);
-	UnloadShader(bg.shader);
+	UnloadRenderTexture(home.bgTarget);
+	UnloadShader(home.bgShader);
 	UnloadSprites(sprs);
 	CloseWindow();
 }

@@ -520,15 +520,11 @@ struct HomeInfo
 	bool homeScreen = true;
 	std::string remoteAddress = "";
 	float freshUpdate = 0;
+	RenderTexture2D bgTarget;
+	Shader bgShader;
 };
 
-struct BGInfo
-{
-	RenderTexture2D target;
-	Shader shader;
-};
-
-void presentMenu(POV pov, const GameState* state, const Config* cfg, Camera3D* cam, const Sprites* sprs, std::ostringstream* gameInfoOSS, HomeInfo* home, BGInfo* bg)
+void presentMenu(POV pov, const GameState* state, const Config* cfg, Camera3D* cam, const Sprites* sprs, std::ostringstream* gameInfoOSS, HomeInfo* home)
 {
 	setCamera(cam, &home->lazyCam, state, pov);
 
@@ -536,18 +532,18 @@ void presentMenu(POV pov, const GameState* state, const Config* cfg, Camera3D* c
 
 	ClearBackground(RAYWHITE);
 
-	BeginTextureMode(bg->target);
+	BeginTextureMode(home->bgTarget);
 	ClearBackground(RAYWHITE);
 	gameScene(pov, state, cfg, cam, sprs);
 	EndTextureMode();
 
 	if (home->homeScreen)
 	{
-		BeginShaderMode(bg->shader);
+		BeginShaderMode(home->bgShader);
 		// NOTE: Render texture must be y-flipped due to default OpenGL coordinates (left-bottom)
 		DrawTextureRec(
-			bg->target.texture,
-			Rectangle{ 0, 0, (float)bg->target.texture.width, (float)-bg->target.texture.height },
+			home->bgTarget.texture,
+			Rectangle{ 0, 0, (float)home->bgTarget.texture.width, (float)-home->bgTarget.texture.height },
 			Vector2 { 0, 0 }, WHITE);
 		EndShaderMode();
 		
@@ -605,8 +601,8 @@ void presentMenu(POV pov, const GameState* state, const Config* cfg, Camera3D* c
 	else
 	{
 		DrawTextureRec(
-			bg->target.texture,
-			Rectangle{ 0, 0, (float)bg->target.texture.width, (float)-bg->target.texture.height },
+			home->bgTarget.texture,
+			Rectangle{ 0, 0, (float)home->bgTarget.texture.width, (float)-home->bgTarget.texture.height },
 			Vector2{ 0, 0 }, WHITE);
 	}
 
