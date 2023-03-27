@@ -1,10 +1,7 @@
 # some things to consider
 # - only values smaller than 128 for decimal values
-#       (y'know, the ones in string so that the parser doesn't possibly marshall as floats, I haven't checked it)
-# - projectile limit is 32 just in case
-#       (and I haven't optimized collisions with partioning anyway so please don't go ham)
-# - set speeds and forces to unit per second instead of per frame, they're already being divided by 60 in the code
-#       (and yes, acceleration gets divided by 1800 instead)
+# - projectile limit is 16 and the game isn't even optimized for bullet hell
+# - set speeds and forces to unit per second
 # - MAKE SURE BOTH PLAYERS HAVE THE EXACT SAME CONFIG OR THE GAME WILL DESYNC WHEN YOU BREATHE ON IT
 
 [GameRules]

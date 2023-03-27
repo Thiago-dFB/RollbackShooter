@@ -75,6 +75,7 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <IncludePath>C:\DEV\.libs\tomlplusplus-3.3.0\include;C:\DEV\.libs\etl-20.35.14\include;C:\DEV\.libs\ggpo\src\include;C:\DEV\.libs\fpm-1.1.0\include;C:\DEV\.libs\raylib-4.5.0_win64_msvc16\include;$(IncludePath)</IncludePath>
+    <TargetName>RBST</TargetName>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -130,12 +131,13 @@
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
-      <SubSystem>Console</SubSystem>
+      <SubSystem>Windows</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>C:\DEV\.libs\ggpo\build\lib\x64\Release;C:\DEV\.libs\raylib-4.5.0_win64_msvc16\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>Ws2_32.lib;WinMM.lib;GGPO.lib;raylib.lib;raylibdll.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
