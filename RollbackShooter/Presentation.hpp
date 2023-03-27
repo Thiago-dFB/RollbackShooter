@@ -21,6 +21,7 @@ struct Sprites
 	Texture2D chars;
 	Texture2D charsFlipped;
 	Texture2D projs;
+	Texture2D hearts;
 	Shader billShader;
 	struct {
 		Model plane;
@@ -86,6 +87,7 @@ Sprites LoadSprites()
 	sprs.charsFlipped = LoadTextureFromImage(atlas);
 	UnloadImage(atlas);
 	sprs.projs = LoadTexture("sprite/projs.png");
+	sprs.hearts = LoadTexture("sprite/hearts.png");
 	sprs.billShader = LoadShader(0, "shader/bill.fs");
 
 	sprs.radius.texture = LoadTexture("sprite/radius.png");
@@ -114,6 +116,7 @@ void UnloadSprites(Sprites sprs)
 	UnloadTexture(sprs.chars);
 	UnloadTexture(sprs.charsFlipped);
 	UnloadTexture(sprs.projs);
+	UnloadTexture(sprs.hearts);
 	UnloadShader(sprs.billShader);
 	UnloadTexture(sprs.radius.texture);
 	UnloadModel(sprs.radius.plane);
@@ -408,6 +411,52 @@ double present(POV pov, const GameState* state, const Config* cfg, Camera3D* cam
 
 	gameScene(pov, state, cfg, cam, sprs);
 
+	float size = 6;
+	for (int i = 0; i < state->health1; i++)
+	{
+		DrawTexturePro(sprs->hearts,
+			Rectangle{ 0,0,8,8 },
+			Rectangle{
+				5 + 8 * size * i,
+				5,
+				8 * size,
+				8 * size
+			},
+			Vector2{ 0,0 }, 0.0f, WHITE);
+	}
+	for (int i = 0; i < state->health2; i++)
+	{
+		DrawTexturePro(sprs->hearts,
+			Rectangle{ 8,0,8,8 },
+			Rectangle{
+				screenWidth - 5 - 8 * size * (i+1),
+				5,
+				8 * size,
+				8 * size
+			},
+			Vector2{ 0,0 }, 0.0f, WHITE);
+	}
+	for (int i = 0; i < cfg->roundsToWin; i++)
+	{
+		DrawTexturePro(sprs->hearts,
+			(i + 1 <= state->rounds1 ? Rectangle{ 24,0,8,8 } : Rectangle{ 16,0,8,8 }),
+			Rectangle{
+				5 + 8 * size * i,
+				5 + 8 * size,
+				8 * size,
+				8 * size
+			},
+			Vector2{ 0,0 }, 0.0f, WHITE);
+		DrawTexturePro(sprs->hearts,
+			(i + 1 <= state->rounds2 ? Rectangle{ 24,0,8,8 } : Rectangle{ 16,0,8,8 }),
+			Rectangle{
+				screenWidth - 5 - 8 * size * (i + 1),
+				5 + 8 * size,
+				8 * size,
+				8 * size
+			},
+			Vector2{ 0,0 }, 0.0f, WHITE);
+	}
 	//crosshair
 	DrawLineEx(
 		Vector2{ centerX - 20 , centerY - 150 },
@@ -435,8 +484,6 @@ double present(POV pov, const GameState* state, const Config* cfg, Camera3D* cam
 	else if (pov == Player2)
 		drawBars(&state->p2, cfg);
 
-	DrawText(gameInfoOSS->str().c_str(), 5, 5, 20, GRAY);
-
 	switch (state->phase)
 	{
 	case Countdown:
@@ -456,6 +503,8 @@ double present(POV pov, const GameState* state, const Config* cfg, Camera3D* cam
 			DrawText("It's a tie.", screenWidth / 2 - 240, screenHeight / 2 - 100, 150, BLACK);
 		break;
 	}
+
+	DrawText(gameInfoOSS->str().c_str(), 5, 5 + 16 * size, 20, GRAY);
 
 	//I figure this is also the timing semaphore
 	double beforeSemaphore = GetTime();

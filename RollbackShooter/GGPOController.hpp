@@ -375,8 +375,6 @@ void NetworkedMain(const Sprites* sprs, std::string remoteAddress, unsigned shor
         {
             gameInfoOSS << "ROLLBACK TO CONFIRM FRAME BEFORE LATEST DETECTED: " << prevConfFrame << std::endl;
         }
-        gameInfoOSS << "P1 HP: " << ggState.health1 << "; ";
-        gameInfoOSS << "P2 HP: " << ggState.health2 << std::endl;
         gameInfoOSS << connectionString;
 
         semaphoreIdleTime = present(pov, &ggState, &cfg, &cam, sprs, &gameInfoOSS);

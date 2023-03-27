@@ -179,6 +179,9 @@
     <Image Include="sprite\chars.png">
       <DeploymentContent>true</DeploymentContent>
     </Image>
+    <Image Include="sprite\hearts.png">
+      <DeploymentContent>true</DeploymentContent>
+    </Image>
     <Image Include="sprite\hitscanBlue.png">
       <DeploymentContent>true</DeploymentContent>
     </Image>
