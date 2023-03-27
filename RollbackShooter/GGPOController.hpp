@@ -136,13 +136,12 @@ bool __cdecl rbst_begin_game_callback(const char*)
 //unused parameter: flags
 bool __cdecl rbst_advance_frame_callback(int)
 {
-    char inputRaw[10];
+    PlayerInputZip zips[2] = { 0 };
     int disconnect_flags;
     //get synced inputs
-    ggpo_synchronize_input(ggpo, (void*)inputRaw, 10, &disconnect_flags);
-    std::istringstream iss(inputRaw);
-    PlayerInput p1 = getInput(&iss);
-    PlayerInput p2 = getInput(&iss);
+    ggpo_synchronize_input(ggpo, (void*)zips, sizeof(PlayerInputZip)*2, &disconnect_flags);
+    PlayerInput p1 = unzipInput(zips[0]);
+    PlayerInput p2 = unzipInput(zips[1]);
     InputData input { p1,p2 };
     //simulate one step
     ggState = simulate(ggState, &cfg, input);
@@ -254,7 +253,7 @@ void NewNetworkedSession(std::string remoteAddress, unsigned short port, playeri
 #endif
     }
 
-    ggRes = ggpo_start_session(&ggpo, &ggCallbacks, "RBST", 2, 5, port);
+    ggRes = ggpo_start_session(&ggpo, &ggCallbacks, "RBST", 2, sizeof(PlayerInputZip), port);
 
     //Automatically disconnect at
     ggpo_set_disconnect_timeout(ggpo, 3000);
@@ -336,28 +335,24 @@ void NetworkedMain(const Sprites* sprs, std::string remoteAddress, unsigned shor
         //input processing
         GGPOErrorCode ggRes = GGPO_OK;
         int disconnect_flags;
-        char inputRaw[10];
+        PlayerInputZip zips[2] = { 0 };
 
         if (localHandle != GGPO_INVALID_HANDLE)
         {
             PlayerInput localInput = processInput(&inputBind);
-            //TODO undo this mess
-            std::stringstream ss;
-            putInput(&ss, localInput);
-            char localInputRaw[5];
-            ss.read(localInputRaw, 5);
-            ggRes = ggpo_add_local_input(ggpo, localHandle, localInputRaw, 5);
+            PlayerInputZip inputZip = zipInput(localInput);
+            ggRes = ggpo_add_local_input(ggpo, localHandle, &inputZip, sizeof(inputZip));
         }
 
         //input syncing (might have to do with input delay if it's set)
         if (GGPO_SUCCEEDED(ggRes))
         {
-            ggRes = ggpo_synchronize_input(ggpo, (void*)inputRaw, 10, &disconnect_flags);
+            ggRes = ggpo_synchronize_input(ggpo, (void*)zips, sizeof(PlayerInputZip) * 2, &disconnect_flags);
             if (GGPO_SUCCEEDED(ggRes))
             {
-                std::istringstream iss(inputRaw);
-                PlayerInput p1 = getInput(&iss);
-                PlayerInput p2 = getInput(&iss);
+                
+                PlayerInput p1 = unzipInput(zips[0]);
+                PlayerInput p2 = unzipInput(zips[1]);
                 InputData input{ p1,p2 };
                 ggState = simulate(ggState, &cfg, input);
                 //Notify GGPO that a frame has passed;

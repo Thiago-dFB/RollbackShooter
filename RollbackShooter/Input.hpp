@@ -40,6 +40,12 @@ struct PlayerInput
 	num_det mouse{ 0 };
 };
 
+struct PlayerInputZip
+{
+	char movAtk = 0;
+	int32_t mouseRaw = 0;
+};
+
 struct InputData
 {
 	PlayerInput p1Input;
@@ -118,77 +124,32 @@ PlayerInput processInput(const InputBindings* inputBind)
 	}
 }
 
+//GGPO does some weird shit with existing input to roll predictions
+//if I knew how to override it with this I would
 PlayerInput predictInput(PlayerInput prevInput)
 {
 	prevInput.atk = None;
 	return prevInput; //simple as that lul
 }
 
-std::string inputToString(PlayerInput input)
+PlayerInputZip zipInput(PlayerInput input)
 {
-	std::ostringstream oss;
-	oss << "a" << static_cast<int>(input.atk) << "m" << static_cast<int>(input.mov) << "l" << input.mouse.raw_value() << ";";
-	return oss.str();
+	PlayerInputZip zip = { 0 };
+	//0mmmmaa
+	zip.movAtk = (static_cast<char>(input.mov) << 2) | static_cast<char>(input.atk);
+	zip.mouseRaw = input.mouse.raw_value();
+	return zip;
 }
 
-PlayerInput stringToInput(std::string str)
+PlayerInput unzipInput(PlayerInputZip zip)
 {
 	PlayerInput input;
-	//0123456789...
-	//a*m*l****;
-	input.atk = static_cast<AttackInput>(std::stoi(str.substr(1, 1)));
-	input.mov = static_cast<MoveInput>(std::stoi(str.substr(3, 1)));
-	size_t delim = str.find(";");
-	input.mouse.from_raw_value(std::stoi(str.substr(5, delim - 5)));
-	return input;
-}
-
-void putInput(std::ostream* os, PlayerInput input)
-{
-	char* buffer = new char[5];
-	
 	//0mmmmaa
-	buffer[0] = (static_cast<char>(input.mov) << 2) | static_cast<char>(input.atk);
-
-	//never let me cook again
-	int32_t mask = 0xff;
-	int32_t raw = input.mouse.raw_value();
-	buffer[4] = raw & mask;
-	raw = raw >> 8;
-	buffer[3] = raw & mask;
-	raw = raw >> 8;
-	buffer[2] = raw & mask;
-	raw = raw >> 8;
-	buffer[1] = raw & mask;
-
-	os->write(buffer, 5);
-}
-
-PlayerInput getInput(std::istream* is)
-{
-	PlayerInput input;
-	
-	char* buffer = new char[5];
-	is->read(buffer, 5);
-
-	//0mmmmaa
-	char movAtk = buffer[0];
 	char movMask = 0b0111100;
 	char atkMask = 0b0000011;
-	input.atk = static_cast<AttackInput>(movAtk & atkMask);
-	input.mov = static_cast<MoveInput>((movAtk & movMask) >> 2);
-
-	//seriously, never let me cook again
-	int32_t raw = 0;
-	raw = raw | buffer[1];
-	raw = raw << 8;
-	raw = raw | buffer[2];
-	raw = raw << 8;
-	raw = raw | buffer[3];
-	raw = raw << 8;
-	raw = raw | buffer[4];
-	input.mouse.from_raw_value(raw);
-
+	input.atk = static_cast<AttackInput>(zip.movAtk & atkMask);
+	input.mov = static_cast<MoveInput>((zip.movAtk & movMask) >> 2);
+	input.mouse = input.mouse.from_raw_value(zip.mouseRaw);
 	return input;
 }
 
