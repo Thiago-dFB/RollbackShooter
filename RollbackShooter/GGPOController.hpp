@@ -103,6 +103,8 @@ bool connected = false;
 int framesAheadPenalty = -1;
 std::string connectionString = "";
 long confirmFrame = 0;
+int rollbackFrames = 0;
+int rollbackWorst = 0;
 
 //lifted from GGPO example
 //(itself lifted from a Wikipedia article about the algorithm? lul)
@@ -147,6 +149,7 @@ bool __cdecl rbst_advance_frame_callback(int)
     ggState = simulate(ggState, &cfg, input);
     //this wasn't on vector war but GGPO does expect me to advance frames in this callback or it will fail some assertion
     ggpo_advance_frame(ggpo);
+    rollbackFrames++;
     
     return true;
 }
@@ -159,7 +162,6 @@ bool __cdecl rbst_advance_frame_callback(int)
 bool __cdecl rbst_load_game_state_callback(unsigned char* buffer, int len)
 {
     memcpy(&ggState, buffer, len);
-    confirmFrame = ggState.frame;
     return true;
 }
 
@@ -300,6 +302,7 @@ void NetworkedMain(const Sprites* sprs, std::string remoteAddress, unsigned shor
     double semaphoreIdleTime = 0;
     long latestConfFrame = 0;
     long prevConfFrame = 0;
+    bool diagnostics = false;
 
     NewNetworkedSession(remoteAddress, port, localPlayer);
     while (connected && !WindowShouldClose() && !endCondition(&ggState, &cfg))
@@ -310,27 +313,30 @@ void NetworkedMain(const Sprites* sprs, std::string remoteAddress, unsigned shor
         {
             SetTargetFPS(60);
         }
-
-        //check if rollback ever comes back to a frame before the latest confirm one
-        if (confirmFrame < latestConfFrame)
-        {
-            prevConfFrame = confirmFrame;
-        }
-        else
-        {
-            latestConfFrame = confirmFrame;
-        }
         
         if (IsKeyPressed(KEY_F10))
         {
             GGPOErrorCode ggRes = ggpo_disconnect_player(ggpo, localHandle);
             connected = false;
         }
+        if (IsKeyPressed(KEY_F4))
+        {
+            diagnostics = !diagnostics;
+        }
 
+        rollbackFrames = 0;
         //GGPO needs this time to execute rollbacks and send packets
         //try to give as much as you can without lagging the main loop
         int timeGivenToIdle = static_cast<int>(floor(semaphoreIdleTime * 1000)) - 1;
         ggpo_idle(ggpo, std::max(0, timeGivenToIdle));
+
+        rollbackWorst = std::max(rollbackWorst, rollbackFrames);
+        confirmFrame = ggState.frame - rollbackFrames;
+        //check if rollback ever comes back to a frame before the latest confirm one
+        if (confirmFrame < latestConfFrame)
+            prevConfFrame = confirmFrame;
+        else
+            latestConfFrame = confirmFrame;
         
         //input processing
         GGPOErrorCode ggRes = GGPO_OK;
@@ -368,13 +374,18 @@ void NetworkedMain(const Sprites* sprs, std::string remoteAddress, unsigned shor
         int currentFps = GetFPS();
         gameInfoOSS.str("");
         gameInfoOSS << "FPS: " << currentFps << std::endl;
-        gameInfoOSS << "Semaphore idle time: " << semaphoreIdleTime * 1000 << " ms" << std::endl;
-        gameInfoOSS << "Rollbacked frames:" << (ggState.frame - confirmFrame) << std::endl;
-        gameInfoOSS << "Latest confirm frame: " << latestConfFrame << std::endl;
-        if(prevConfFrame > 0)
+        if (diagnostics)
         {
-            gameInfoOSS << "ROLLBACK TO CONFIRM FRAME BEFORE LATEST DETECTED: " << prevConfFrame << std::endl;
+            gameInfoOSS << "Semaphore idle time: " << semaphoreIdleTime * 1000 << " ms" << std::endl;
+            gameInfoOSS << "Rollbacked frames:" << rollbackFrames << "f" << std::endl;
+            gameInfoOSS << "Worst rollback: " << rollbackWorst << "f" << std::endl;
+            gameInfoOSS << "Latest confirm frame: " << latestConfFrame << "f" << std::endl;
+            if (prevConfFrame > 0)
+            {
+                gameInfoOSS << "ROLLBACK TO CONFIRM FRAME BEFORE LATEST DETECTED: " << prevConfFrame << " < " << latestConfFrame << std::endl;
+            }
         }
+        else gameInfoOSS << "[F4 for diagnostics]" << std::endl;
         gameInfoOSS << connectionString;
 
         semaphoreIdleTime = present(pov, &ggState, &cfg, &cam, sprs, &gameInfoOSS);
@@ -389,6 +400,8 @@ void NetworkedMain(const Sprites* sprs, std::string remoteAddress, unsigned shor
     connectionString = "";
     framesAheadPenalty = -1;
     confirmFrame = 0;
+    rollbackFrames = 0;
+    rollbackWorst = 0;
 
     //ugliness number 3, also from the PR
     {
