@@ -12,7 +12,6 @@
 #include "Player.hpp"
 #include "Presentation.hpp"
 #include "GGPOController.hpp"
-#include "DummyScene.hpp"
 
 int main(int argc, char* argv[])
 {
@@ -62,45 +61,28 @@ int main(int argc, char* argv[])
 		else
 		{
 			//MENU CONTROLS
-			if (IsKeyPressed(KEY_RIGHT))
-			{
-				home.selected = static_cast<MenuItem>((home.selected + 1) % 3);
-			}
-			else if (IsKeyPressed(KEY_LEFT))
-			{
-				home.selected = static_cast<MenuItem>((home.selected + 2) % 3);
-			}
 			if (IsKeyDown(KEY_LEFT_CONTROL) && IsKeyPressed(KEY_V))
 			{
 				home.remoteAddress = std::string(GetClipboardText());
 				home.freshUpdate = 1;
 			}
-
-			if (IsKeyPressed(KEY_ENTER)) {
-				switch (home.selected)
-				{
-				case Dummy:
-					DummyMain(&sprs);
-					//back from match
-					replayState = initialState(&cfg);
-					home.lazyCam = v2::zero();
-					break;
-				case ConnectP1:
-					NetworkedMain(&sprs, home.remoteAddress, port, 1);
-					//back from match
-					replayState = initialState(&cfg);
-					home.lazyCam = v2::zero();
-					break;
-				case ConnectP2:
-					NetworkedMain(&sprs, home.remoteAddress, port, 2);
-					//back from match
-					replayState = initialState(&cfg);
-					home.lazyCam = v2::zero();
-					break;
-				}
+			else if (IsKeyPressed(KEY_F1))
+			{
+				NetworkedMain(&sprs, home.remoteAddress, port, 1);
+				//back from match
+				replayState = initialState(&cfg);
+				home.lazyCam = v2::zero();
+				break;
+			}
+			else if (IsKeyPressed(KEY_F2))
+			{
+				NetworkedMain(&sprs, home.remoteAddress, port, 2);
+				//back from match
+				replayState = initialState(&cfg);
+				home.lazyCam = v2::zero();
+				break;
 			}
 		}
-
 		//TODO replay input
 		PlayerInput p1Input{ None, Neutral, num_det {0} };
 		PlayerInput p2Input{ None, Neutral, num_det {0} };
@@ -111,6 +93,12 @@ int main(int argc, char* argv[])
 		int currentFps = GetFPS();
 		replayOSS.str("");
 		replayOSS << "FPS: " << currentFps << std::endl;
+		if (!home.homeScreen)
+		{
+			replayOSS << "Press F1 and F2 for player POVs," << std::endl;
+			replayOSS << "F3 for spectator POV," << std::endl;
+			replayOSS << "or F4 to go back to menu." << std::endl;
+		}
 		//presentation
 		presentMenu(replayPOV, &replayState, &cfg, &replayCam, &sprs, &replayOSS, &home, &bg);
 	}

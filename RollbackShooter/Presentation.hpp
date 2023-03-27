@@ -441,16 +441,8 @@ double present(POV pov, const GameState* state, const Config* cfg, Camera3D* cam
 
 //HOME SCREEN PRESENTATION
 
-enum MenuItem
-{
-	Dummy = 0,
-	ConnectP1 = 1,
-	ConnectP2 = 2
-};
-
 struct HomeInfo
 {
-	MenuItem selected = Dummy;
 	Vec2 lazyCam = v2::zero();
 	bool homeScreen = true;
 	std::string remoteAddress = "";
@@ -496,20 +488,14 @@ void presentMenu(POV pov, const GameState* state, const Config* cfg, Camera3D* c
 		float btnTop = screenHeight - 60;
 		float btnWidth = 240;
 		float btnHeight = 40;
-		float btnDist = 30;
 
-		float dummyX = xCenter - 3 * btnDist - 2 * btnWidth;
-		float p1X = xCenter - btnDist - btnWidth;
-		float p2X = xCenter + btnDist;
-		float addressX = xCenter + 3 * btnDist + btnWidth;
-		Rectangle dummyBtn = Rectangle{dummyX, btnTop, btnWidth, btnHeight };
+		float p1X      = xCenter - 120 - 320;
+		float p2X      = xCenter - 120;
+		float addressX = xCenter - 120 + 320;
 		Rectangle p1Btn = Rectangle{ p1X, btnTop, btnWidth, btnHeight };
 		Rectangle p2Btn = Rectangle{ p2X, btnTop, btnWidth, btnHeight };
 		Rectangle addressField = Rectangle{ addressX, btnTop, btnWidth, btnHeight };
 
-		Color dummyColor = home->selected == Dummy ? RED : GRAY;
-		Color p1Color = home->selected == Player1 ? RED : GRAY;
-		Color p2Color = home->selected == Player2 ? RED : GRAY;
 		Color addressColor = Color{
 			static_cast<unsigned char>(130 + home->freshUpdate * (0-130)),
 			static_cast<unsigned char>(130 + home->freshUpdate * (158-130)),
@@ -517,15 +503,16 @@ void presentMenu(POV pov, const GameState* state, const Config* cfg, Camera3D* c
 			255
 		};
 
-		DrawRectangleRec(dummyBtn, LIGHTGRAY);
-		DrawRectangleLinesEx(dummyBtn, 4, dummyColor);
-		DrawText("Start Dummy Match", dummyBtn.x + 10, dummyBtn.y + 10, 20, BLACK);
 		DrawRectangleRec(p1Btn, LIGHTGRAY);
-		DrawRectangleLinesEx(p1Btn, 4, p1Color);
+		DrawRectangleLinesEx(p1Btn, 4, RED);
 		DrawText("Connect as Player 1", p1Btn.x + 10, p1Btn.y + 10, 20, BLACK);
+		DrawText("F1", p1Btn.x, p1Btn.y - 20, 20, BLACK);
+
 		DrawRectangleRec(p2Btn, LIGHTGRAY);
-		DrawRectangleLinesEx(p2Btn, 4, p2Color);
+		DrawRectangleLinesEx(p2Btn, 4, BLUE);
 		DrawText("Connect as Player 2", p2Btn.x + 10, p2Btn.y + 10, 20, BLACK);
+		DrawText("F2", p2Btn.x, p2Btn.y - 20, 20, BLACK);
+
 		DrawRectangleRec(addressField, WHITE);
 		DrawRectangleLinesEx(addressField, 4, addressColor);
 		DrawText(home->remoteAddress.c_str(), addressField.x + 10, addressField.y + 10, 20, BLACK);
