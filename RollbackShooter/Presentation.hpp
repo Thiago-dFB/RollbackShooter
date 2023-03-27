@@ -289,19 +289,19 @@ void gameScene(POV pov, const GameState* state, const Config* cfg, const Camera3
 			float scroll = (divert * divert);
 			SetShaderValue(sprs->path.charge.shader, sprs->path.charge.scroll, &scroll, SHADER_UNIFORM_FLOAT);
 			DrawModelEx(sprs->path.charge.path,
-				fromDetVec2(state->p1.pos, .01f),
+				fromDetVec2(state->p2.pos, .01f),
 				Vector3{ 0,-1,0 },
 				angle,
 				Vector3{ 1,1,.25 },
 				WHITE);
 			DrawModelEx(sprs->path.charge.path,
-				fromDetVec2(state->p1.pos, .005f),
+				fromDetVec2(state->p2.pos, .005f),
 				Vector3{ 0,-1,0 },
 				angle + (divert * 30),
 				Vector3{ 1,1,.1 },
 				WHITE);
 			DrawModelEx(sprs->path.charge.path,
-				fromDetVec2(state->p1.pos, .005f),
+				fromDetVec2(state->p2.pos, .005f),
 				Vector3{ 0,-1,0 },
 				angle - (divert * 30),
 				Vector3{ 1,1,.1 },

@@ -237,6 +237,10 @@ GameState simulate(GameState state, const Config* cfg, InputData input)
 		{
 		case PState::Dashing:
 			state.p2.dashCount++;
+			if (state.p2.dashCount >= cfg->dashDuration)
+			{
+				state.p2.pushdown.pop();
+			}
 			break;
 		case PState::Charging:
 			state.p2.chargeCount++;
@@ -444,7 +448,7 @@ GameState simulate(GameState state, const Config* cfg, InputData input)
 			//break out of stun at the cost of a dash
 			if (input.p2Input.atk == AttackInput::Dash && !state.p2DmgThisFrame && state.p2.stamina >= cfg->dashCost)
 			{
-				state.p2.vel = v2::scalarMult(pickDashDir(state.p1.dir, input.p1Input.mov), cfg->playerDashSpeed);
+				state.p2.vel = v2::scalarMult(pickDashDir(state.p2.dir, input.p2Input.mov), cfg->playerDashSpeed);
 				state.p2.stamina = state.p2.stamina - cfg->dashCost;
 				state.p2.stunned = false;
 			}
@@ -458,7 +462,7 @@ GameState simulate(GameState state, const Config* cfg, InputData input)
 			case AttackInput::Dash:
 				if (state.p2.stamina < cfg->dashCost) break;
 				state.p2.dashCount = 0;
-				state.p2.dashVel = v2::scalarMult(pickDashDir(state.p1.dir, input.p1Input.mov), cfg->playerDashSpeed);
+				state.p2.dashVel = v2::scalarMult(pickDashDir(state.p2.dir, input.p2Input.mov), cfg->playerDashSpeed);
 				state.p2.perfectPos = state.p2.pos;
 				state.p2.pushdown.push(PState::Dashing);
 				state.p2.stamina = state.p2.stamina - cfg->dashCost;
@@ -482,7 +486,7 @@ GameState simulate(GameState state, const Config* cfg, InputData input)
 			state.p2.stamina >= cfg->dashCost)
 		{
 			state.p2.dashCount = 0;
-			state.p2.dashVel = v2::scalarMult(pickDashDir(state.p1.dir, input.p1Input.mov), cfg->playerDashSpeed);
+			state.p2.dashVel = v2::scalarMult(pickDashDir(state.p2.dir, input.p2Input.mov), cfg->playerDashSpeed);
 			state.p2.perfectPos = state.p2.pos;
 			state.p2.stamina = state.p2.stamina - cfg->dashCost;
 		}

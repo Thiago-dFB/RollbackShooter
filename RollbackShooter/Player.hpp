@@ -169,8 +169,8 @@ void movePlayer(Player* player, const Config* cfg, PlayerInput input)
 
 void damagePlayer(Player* player, const Config* cfg, Vec2 origin, int8 force)
 {
-	//CANCEL CURRENT ACTION
-	if (player->pushdown.top() == PState::Charging || player->pushdown.top() == PState::Dashing)
+	//CANCEL CURRENT ACTION (except if player will shoot alt shot THIS frame)
+	if (player->pushdown.top() == PState::Dashing || (player->pushdown.top() == PState::Charging && player->chargeCount >= cfg->chargeDuration))
 	{
 		player->pushdown.pop();
 	}
