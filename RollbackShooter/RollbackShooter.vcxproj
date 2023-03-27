@@ -175,6 +175,9 @@
     <Image Include="sprite\charge.png">
       <DeploymentContent>true</DeploymentContent>
     </Image>
+    <Image Include="sprite\chars.png">
+      <DeploymentContent>true</DeploymentContent>
+    </Image>
     <Image Include="sprite\hitscanBlue.png">
       <DeploymentContent>true</DeploymentContent>
     </Image>

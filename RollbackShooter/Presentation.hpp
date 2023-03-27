@@ -16,6 +16,8 @@ const int centerY = screenHeight / 2;
 
 struct Sprites
 {
+	Texture2D chars;
+	Texture2D charsFlipped;
 	Texture2D projs;
 	Shader billShader;
 	struct {
@@ -75,6 +77,11 @@ static Mesh GenMeshPath()
 Sprites LoadSprites()
 {
 	Sprites sprs;
+	Image atlas = LoadImage("sprite/chars.png");
+	sprs.chars = LoadTextureFromImage(atlas);
+	ImageFlipHorizontal(&atlas);
+	sprs.charsFlipped = LoadTextureFromImage(atlas);
+	UnloadImage(atlas);
 	sprs.projs = LoadTexture("sprite/projs.png");
 	sprs.billShader = LoadShader(0, "shader/bill.fs");
 
@@ -100,6 +107,8 @@ Sprites LoadSprites()
 
 void UnloadSprites(Sprites sprs)
 {
+	UnloadTexture(sprs.chars);
+	UnloadTexture(sprs.charsFlipped);
 	UnloadTexture(sprs.projs);
 	UnloadShader(sprs.billShader);
 	UnloadTexture(sprs.radius.texture);
@@ -111,6 +120,19 @@ void UnloadSprites(Sprites sprs)
 	UnloadModel(sprs.path.hitscanRed.path);
 	UnloadTexture(sprs.path.hitscanBlue.texture);
 	UnloadModel(sprs.path.hitscanBlue.path);
+}
+
+//state: 0=default, 1=dashing, 2=stunned
+Rectangle CharAtlas(playerid player, bool isPov, bool flipped, int state)
+{
+	int x = state * 32;
+	int y = (player - 1) * 32;
+	if (isPov) y = y + 64;
+	if (flipped) x = 64 - x;
+	return Rectangle{
+		static_cast<float>(x),
+		static_cast<float>(y),
+		32,32};
 }
 
 enum POV
@@ -126,7 +148,7 @@ Camera3D initialCamera()
 	cam.position = Vector3{ 0.0f, 0.0f, 0.0f };
 	cam.target = Vector3{ 0.0f, 0.0f, 0.0f };
 	cam.up = Vector3{ 0.0f, 1.0f, 0.0f };
-	cam.fovy = 70.0f;
+	cam.fovy = 60.0f;
 	cam.projection = CAMERA_PERSPECTIVE;
 	return cam;
 }
@@ -183,16 +205,56 @@ void gameScene(POV pov, const GameState* state, const Config* cfg, const Camera3
 	BeginMode3D(*cam);
 	{
 		//draw players (and their alt shot direction if they're charging)
-		DrawCylinderWires(
-			fromDetVec2(state->p1.pos),
-			fromDetNum(cfg->playerRadius),
-			fromDetNum(cfg->playerRadius),
-			1.0f, 10, RED);
-		DrawCylinderWires(
-			fromDetVec2(state->p2.pos),
-			fromDetNum(cfg->playerRadius),
-			fromDetNum(cfg->playerRadius),
-			1.0f, 10, BLUE);
+		BeginShaderMode(sprs->billShader);
+		Vec2 camAngle {
+			num_det{ cam->target.x - cam->position.x },
+			num_det{ cam->target.z - cam->position.z }
+		};
+		Vec2 camRight = v2::normalize(v2::rotate(camAngle, camAngle.x.half_pi()));
+		float p1Shake = 0, p2Shake = 0;
+		int p1State = 0, p2State = 0;
+		if (state->p1.stunned)
+		{
+			p1State = 2;
+			p1Shake = state->p1.hitstopCount * GetRandomValue(-10, 10) / 300.0f;
+		}
+		else if (state->p1.pushdown.top() == Dashing) p1State = 1;
+		if (state->p2.stunned)
+		{
+			p2State = 2;
+			p2Shake = state->p2.hitstopCount * GetRandomValue(-10, 10) / 300.0f;
+		}
+		else if (state->p2.pushdown.top() == Dashing) p2State = 1;
+		bool p1Mirror = v2::dot(camRight, state->p1.vel) < num_det{ 0 };
+		bool p2Mirror = v2::dot(camRight, state->p2.vel) < num_det{ 0 };
+		//player sprites
+		DrawBillboardPro(*cam,
+			(p1Mirror ? sprs->charsFlipped : sprs->chars),
+			CharAtlas(1, (pov == Player1), p1Mirror, p1State),
+			fromDetVec2WithShake(state->p1.pos, camRight, fromDetNum(cfg->playerRadius), p1Shake),
+			Vector3{ 0,1,0 },
+			Vector2{ fromDetNum(cfg->playerRadius) * 3, fromDetNum(cfg->playerRadius) * 3 },
+			Vector2{ 0.0f, 0.0f },
+			0.0f, WHITE);
+		DrawBillboardPro(*cam,
+			(p2Mirror ? sprs->charsFlipped : sprs->chars),
+			CharAtlas(2, (pov == Player2), p2Mirror, p2State),
+			fromDetVec2WithShake(state->p2.pos, camRight, fromDetNum(cfg->playerRadius), p2Shake),
+			Vector3{ 0,1,0 },
+			Vector2{ fromDetNum(cfg->playerRadius) * 3, fromDetNum(cfg->playerRadius) * 3 },
+			Vector2{ 0.0f, 0.0f },
+			0.0f, WHITE);
+		//player radius
+		DrawModel(
+			sprs->radius.plane,
+			fromDetVec2(state->p1.pos, .01f),
+			fromDetNum(cfg->playerRadius) * 2,
+			WHITE);
+		DrawModel(
+			sprs->radius.plane,
+			fromDetVec2(state->p2.pos, .01f),
+			fromDetNum(cfg->playerRadius) * 2,
+			WHITE);
 
 		//draw charge paths
 		if (state->p1.pushdown.top() == PState::Charging)
@@ -260,7 +322,6 @@ void gameScene(POV pov, const GameState* state, const Config* cfg, const Camera3
 			framesToAltShot = state->p2.pushdown.top() == Charging ? (cfg->chargeDuration - state->p2.chargeCount) : cfg->chargeDuration;
 			break;
 		}
-		BeginShaderMode(sprs->billShader);
 		for (auto it = state->projs.begin(); it != state->projs.end(); ++it)
 		{
 			Vec2 futurePos = v2::add(it->pos, v2::scalarMult(it->vel, num_det{ framesToAltShot }));
@@ -300,7 +361,7 @@ void gameScene(POV pov, const GameState* state, const Config* cfg, const Camera3
 					fromDetVec2(futurePos, 1.0f), //world pos
 					Vector3{ 0.0f,1.0f,0.0f }, //up vector
 					Vector2{ fromDetNum(cfg->projRadius) * 2, fromDetNum(cfg->projRadius) * 2 }, //size
-					Vector2{ .5f,.5f }, //anchor for rotation and scaling
+					Vector2{ 0.0f, 0.0f }, //anchor for rotation and scaling
 					0.0f,
 					WHITE);
 				if (showCombos)

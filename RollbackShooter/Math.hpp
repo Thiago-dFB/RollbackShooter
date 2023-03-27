@@ -143,6 +143,12 @@ inline Vector3 fromDetVec2(Vec2 vec, float height = 0.0f)
 	return Vector3{ static_cast<float>(vec.x), height, static_cast<float>(vec.y) };
 }
 
+Vector3 fromDetVec2WithShake(Vec2 vec, Vec2 camRight, float height = 0.0f, float shakeAmount = 0.0f)
+{
+	Vec2 shaken = v2::add(vec, v2::scalarMult(camRight, num_det{ shakeAmount }));
+	return Vector3{ static_cast<float>(shaken.x), height, static_cast<float>(shaken.y) };
+}
+
 inline float fromDetNum(num_det num)
 {
 	return static_cast<float>(num);
