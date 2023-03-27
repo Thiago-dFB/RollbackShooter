@@ -94,6 +94,7 @@ typedef struct tagBITMAPINFOHEADER {
 #include "Config.hpp"
 #include "GameState.hpp"
 #include "Presentation.hpp"
+#include "Replay.hpp"
 
 GameState ggState;
 GGPOSession* ggpo = NULL;
@@ -105,6 +106,7 @@ std::string connectionString = "";
 long confirmFrame = 0;
 int rollbackFrames = 0;
 int rollbackWorst = 0;
+ReplayWriter* replayW = NULL;
 
 //lifted from GGPO example
 //(itself lifted from a Wikipedia article about the algorithm? lul)
@@ -145,6 +147,7 @@ bool __cdecl rbst_advance_frame_callback(int)
     PlayerInput p1 = unzipInput(zips[0]);
     PlayerInput p2 = unzipInput(zips[1]);
     InputData input { p1,p2 };
+    overwriteReplayInput(replayW, input, ggState.frame);
     //simulate one step
     ggState = simulate(ggState, &cfg, input);
     //this wasn't on vector war but GGPO does expect me to advance frames in this callback or it will fail some assertion
@@ -304,6 +307,10 @@ void NetworkedMain(const Sprites* sprs, std::string remoteAddress, unsigned shor
     long prevConfFrame = 0;
     bool diagnostics = false;
 
+    ReplayWriter replay = { 0 };
+    openReplayFile(&replay);
+    replayW = &replay;
+
     NewNetworkedSession(remoteAddress, port, localPlayer);
     while (connected && !WindowShouldClose() && !endCondition(&ggState, &cfg))
     {
@@ -337,6 +344,8 @@ void NetworkedMain(const Sprites* sprs, std::string remoteAddress, unsigned shor
             prevConfFrame = confirmFrame;
         else
             latestConfFrame = confirmFrame;
+
+        consumeReplayInput(&replay, confirmFrame);
         
         //input processing
         GGPOErrorCode ggRes = GGPO_OK;
@@ -360,6 +369,7 @@ void NetworkedMain(const Sprites* sprs, std::string remoteAddress, unsigned shor
                 PlayerInput p1 = unzipInput(zips[0]);
                 PlayerInput p2 = unzipInput(zips[1]);
                 InputData input{ p1,p2 };
+                writeReplayInput(&replay, input, ggState.frame);
                 ggState = simulate(ggState, &cfg, input);
                 //Notify GGPO that a frame has passed;
                 ggpo_advance_frame(ggpo);
@@ -402,6 +412,9 @@ void NetworkedMain(const Sprites* sprs, std::string remoteAddress, unsigned shor
     confirmFrame = 0;
     rollbackFrames = 0;
     rollbackWorst = 0;
+
+    closeReplayFile(&replay);
+    replayW = NULL;
 
     //ugliness number 3, also from the PR
     {

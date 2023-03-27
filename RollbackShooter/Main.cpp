@@ -20,6 +20,8 @@ int main(int argc, char* argv[])
 	SetWindowState(FLAG_WINDOW_ALWAYS_RUN);
 
 	HomeInfo home;
+
+	bool cleanMode = false;
 	
 	auto launchOpt = toml::parse_file("RBST_launch.toml");
 	home.remoteAddress = launchOpt["Network"]["remoteAddress"].value_or("127.0.0.1");
@@ -28,7 +30,11 @@ int main(int argc, char* argv[])
 	POV replayPOV = Spectator;
 	Camera3D replayCam = initialCamera();
 	GameState replayState = initialState(&cfg);
+	ReplayReader replayR;
 	std::ostringstream replayOSS;
+
+	std::string replayFile(launchOpt["Replay"]["replayFile"].value_or("demo.rbst"));
+	openReplayFile(&replayR, replayFile.c_str());
 
 	home.bgTarget = LoadRenderTexture(screenWidth, screenHeight);
 	home.bgShader = LoadShader(0, "shader/bg.fs");
@@ -55,6 +61,8 @@ int main(int argc, char* argv[])
 				replayPOV = Player2;
 			else if (IsKeyPressed(KEY_F3))
 				replayPOV = Spectator;
+			else if (IsKeyPressed(KEY_C))
+				cleanMode = !cleanMode;
 		}
 		else
 		{
@@ -69,8 +77,6 @@ int main(int argc, char* argv[])
 				DisableCursor();
 				NetworkedMain(&sprs, home.remoteAddress, port, 1);
 				//back from match
-				replayState = initialState(&cfg);
-				home.lazyCam = v2::zero();
 				EnableCursor();
 			}
 			else if (IsKeyPressed(KEY_F2))
@@ -78,15 +84,17 @@ int main(int argc, char* argv[])
 				DisableCursor();
 				NetworkedMain(&sprs, home.remoteAddress, port, 2);
 				//back from match
-				replayState = initialState(&cfg);
-				home.lazyCam = v2::zero();
 				EnableCursor();
 			}
 		}
-		//TODO replay input
-		PlayerInput p1Input{ None, Neutral, num_det {0} };
-		PlayerInput p2Input{ None, Neutral, num_det {0} };
-		InputData input{ p1Input, p2Input };
+		if (replayFileEnd(&replayR))
+		{
+			closeReplayFile(&replayR);
+			//repeat
+			replayState = initialState(&cfg);
+			openReplayFile(&replayR, replayFile.c_str());
+		}
+		InputData input = readReplayFile(&replayR);
 		//simulation
 		replayState = simulate(replayState, &cfg, input);
 		//secondary simulation
@@ -97,13 +105,16 @@ int main(int argc, char* argv[])
 		{
 			replayOSS << "Press F1 and F2 for player POVs," << std::endl;
 			replayOSS << "F3 for spectator POV," << std::endl;
+			replayOSS << "C for (clean? camera? cinematic?) mode," << std::endl;
 			replayOSS << "or F4 to go back to menu." << std::endl;
 		}
+		if (cleanMode) replayOSS.str("");
 		//presentation
 		presentMenu(replayPOV, &replayState, &cfg, &replayCam, &sprs, &replayOSS, &home);
 	}
 	UnloadRenderTexture(home.bgTarget);
 	UnloadShader(home.bgShader);
 	UnloadSprites(sprs);
+	closeReplayFile(&replayR);
 	CloseWindow();
 }

@@ -151,6 +151,7 @@
     <ClInclude Include="Math.hpp" />
     <ClInclude Include="Player.hpp" />
     <ClInclude Include="Presentation.hpp" />
+    <ClInclude Include="Replay.hpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="RBST_config.toml">
