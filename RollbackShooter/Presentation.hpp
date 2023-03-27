@@ -3,6 +3,7 @@
 
 //std
 #include <ostream>
+#include <string>
 //Raylib
 #include <raylib.h>
 
@@ -436,6 +437,26 @@ double present(POV pov, const GameState* state, const Config* cfg, Camera3D* cam
 
 	DrawText(gameInfoOSS->str().c_str(), 5, 5, 20, GRAY);
 
+	switch (state->phase)
+	{
+	case Countdown:
+		DrawText(std::to_string(static_cast<int>(ceil(state->roundCountdown / 60.0))).c_str(),
+			screenWidth / 2 - 50, screenHeight / 2 - 100, 150, BLACK);
+		break;
+	case Play:
+		DrawText(std::to_string(state->roundCountdown / 60).c_str(),
+			screenWidth / 2 - 40, 5, 60, BLACK);
+		break;
+	case End:
+		if (state->health1 > state->health2)
+			DrawText("P1 WIN!", screenWidth / 2 - 200, screenHeight / 2 - 100, 150, RED);
+		else if (state->health1 < state->health2)
+			DrawText("P2 WIN!", screenWidth / 2 - 200, screenHeight / 2 - 100, 150, BLUE);
+		else
+			DrawText("It's a tie.", screenWidth / 2 - 240, screenHeight / 2 - 100, 150, BLACK);
+		break;
+	}
+
 	//I figure this is also the timing semaphore
 	double beforeSemaphore = GetTime();
 	EndDrawing();
@@ -481,6 +502,7 @@ void presentMenu(POV pov, const GameState* state, const Config* cfg, Camera3D* c
 			Vector2 { 0, 0 }, WHITE);
 		EndShaderMode();
 		
+		//LOGO
 		int logoSize = 12;
 		Vector2 logoPos = {
 			screenWidth / 2 - (logoSize * sprs->logo.width / 2),

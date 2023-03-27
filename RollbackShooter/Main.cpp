@@ -18,7 +18,6 @@ int main(int argc, char* argv[])
 	InitWindow(screenWidth, screenHeight, "RBST");
 	SetTargetFPS(60);
 	SetWindowState(FLAG_WINDOW_ALWAYS_RUN);
-	DisableCursor();
 
 	HomeInfo home;
 	
@@ -68,17 +67,21 @@ int main(int argc, char* argv[])
 			}
 			else if (IsKeyPressed(KEY_F1))
 			{
+				DisableCursor();
 				NetworkedMain(&sprs, home.remoteAddress, port, 1);
 				//back from match
 				replayState = initialState(&cfg);
 				home.lazyCam = v2::zero();
+				EnableCursor();
 			}
 			else if (IsKeyPressed(KEY_F2))
 			{
+				DisableCursor();
 				NetworkedMain(&sprs, home.remoteAddress, port, 2);
 				//back from match
 				replayState = initialState(&cfg);
 				home.lazyCam = v2::zero();
+				EnableCursor();
 			}
 		}
 		//TODO replay input
