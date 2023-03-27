@@ -1,3 +1,84 @@
+//ugliness number 1, to solve conflicts between Raylib and windows.h
+//from https://github.com/raysan5/raylib/issues/1217
+
+#if defined(_WIN32)
+// To avoid conflicting windows.h symbols with raylib, some flags are defined
+// WARNING: Those flags avoid inclusion of some Win32 headers that could be required
+// by user at some point and won't be included...
+//-------------------------------------------------------------------------------------
+
+// If defined, the following flags inhibit definition of the indicated items.
+#define NOGDICAPMASKS     // CC_*, LC_*, PC_*, CP_*, TC_*, RC_
+#define NOVIRTUALKEYCODES // VK_*
+#define NOWINMESSAGES     // WM_*, EM_*, LB_*, CB_*
+#define NOWINSTYLES       // WS_*, CS_*, ES_*, LBS_*, SBS_*, CBS_*
+#define NOSYSMETRICS      // SM_*
+#define NOMENUS           // MF_*
+#define NOICONS           // IDI_*
+#define NOKEYSTATES       // MK_*
+#define NOSYSCOMMANDS     // SC_*
+#define NORASTEROPS       // Binary and Tertiary raster ops
+#define NOSHOWWINDOW      // SW_*
+#define OEMRESOURCE       // OEM Resource values
+#define NOATOM            // Atom Manager routines
+#define NOCLIPBOARD       // Clipboard routines
+#define NOCOLOR           // Screen colors
+#define NOCTLMGR          // Control and Dialog routines
+#define NODRAWTEXT        // DrawText() and DT_*
+#define NOGDI             // All GDI defines and routines
+#define NOKERNEL          // All KERNEL defines and routines
+#define NOUSER            // All USER defines and routines
+//#define NONLS             // All NLS defines and routines
+#define NOMB              // MB_* and MessageBox()
+#define NOMEMMGR          // GMEM_*, LMEM_*, GHND, LHND, associated routines
+#define NOMETAFILE        // typedef METAFILEPICT
+#define NOMINMAX          // Macros min(a,b) and max(a,b)
+#define NOMSG             // typedef MSG and associated routines
+#define NOOPENFILE        // OpenFile(), OemToAnsi, AnsiToOem, and OF_*
+#define NOSCROLL          // SB_* and scrolling routines
+#define NOSERVICE         // All Service Controller routines, SERVICE_ equates, etc.
+#define NOSOUND           // Sound driver routines
+#define NOTEXTMETRIC      // typedef TEXTMETRIC and associated routines
+#define NOWH              // SetWindowsHook and WH_*
+#define NOWINOFFSETS      // GWL_*, GCL_*, associated routines
+#define NOCOMM            // COMM driver routines
+#define NOKANJI           // Kanji support stuff.
+#define NOHELP            // Help engine interface.
+#define NOPROFILER        // Profiler interface.
+#define NODEFERWINDOWPOS  // DeferWindowPos routines
+#define NOMCX             // Modem Configuration Extensions
+
+// Type required before windows.h inclusion
+typedef struct tagMSG* LPMSG;
+
+#include <windows.h>
+#include <winsock.h>
+
+// Type required by some unused function...
+typedef struct tagBITMAPINFOHEADER {
+    DWORD biSize;
+    LONG  biWidth;
+    LONG  biHeight;
+    WORD  biPlanes;
+    WORD  biBitCount;
+    DWORD biCompression;
+    DWORD biSizeImage;
+    LONG  biXPelsPerMeter;
+    LONG  biYPelsPerMeter;
+    DWORD biClrUsed;
+    DWORD biClrImportant;
+} BITMAPINFOHEADER, * PBITMAPINFOHEADER;
+
+#include <objbase.h>
+#include <mmreg.h>
+#include <mmsystem.h>
+
+// Some required types defined for MSVC/TinyC compiler
+#if defined(_MSC_VER) || defined(__TINYC__)
+#include "propidl.h"
+#endif
+#endif
+
 #ifndef RBST_GGPO_HPP
 #define RBST_GGPO_HPP
 
@@ -65,6 +146,8 @@ bool __cdecl rbst_advance_frame_callback(int)
     InputData input { p1,p2 };
     //simulate one step
     ggState = simulate(ggState, &cfg, input);
+    //this wasn't on vector war but GGPO does expect me to advance frames in this callback or it will fail some assertion
+    ggpo_advance_frame(ggpo);
     
     return true;
 }
@@ -154,12 +237,34 @@ void NewNetworkedSession(std::string remoteAddress, unsigned short port, playeri
     ggCallbacks.log_game_state = rbst_log_game_state;
     ggCallbacks.on_event = rbst_on_event_callback;
 
+    //ugliness number 2, from this open PR: https://github.com/pond3r/ggpo/pull/69/commits/01243225d407eafb1c2e7aa4cefca8f11a107476
+    {
+#ifdef WIN32
+        WORD wVersionRequested = MAKEWORD(2, 2);
+        WSADATA wsaData;
+        int err = WSAStartup(wVersionRequested, &wsaData);
+
+        if (err != 0) {
+            // Can comment out following lines for debugging purposes
+            //printf("WSAStartup failed with error: %d\n", err);
+            //DWORD lastError = WSAGetLastError();
+            //printf("last error code: %d\n", lastError);
+            assert(FALSE && "Error initializing winsockets");
+        }
+#endif
+    }
+
     ggRes = ggpo_start_session(&ggpo, &ggCallbacks, "RBST", 2, 5, port);
 
     //Automatically disconnect at
     ggpo_set_disconnect_timeout(ggpo, 3000);
     //Start disconnect timer at
     ggpo_set_disconnect_notify_start(ggpo, 1000);
+
+    ggP1 = ggP2 = { 0 };
+    ggP1.size = ggP2.size = sizeof(GGPOPlayer);
+    ggP1.player_num = 1;
+    ggP2.player_num = 2;
 
     switch (localPlayer)
     {
@@ -293,6 +398,17 @@ void NetworkedMain(const Sprites* sprs, std::string remoteAddress, unsigned shor
     connectionString = "";
     framesAheadPenalty = -1;
     confirmFrame = 0;
+
+    //ugliness number 3, also from the PR
+    {
+#ifdef WIN32
+        // https://docs.microsoft.com/en-us/windows/win32/api/winsock/nf-winsock-wsacleanup
+        int result = WSACleanup();
+        if (result != 0) {
+            assert(FALSE && "Error de-initializing winsockets");
+        }
+#endif
+    }
 }
 
 #endif
