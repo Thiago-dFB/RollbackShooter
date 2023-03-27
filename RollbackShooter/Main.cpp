@@ -72,7 +72,6 @@ int main(int argc, char* argv[])
 				//back from match
 				replayState = initialState(&cfg);
 				home.lazyCam = v2::zero();
-				break;
 			}
 			else if (IsKeyPressed(KEY_F2))
 			{
@@ -80,7 +79,6 @@ int main(int argc, char* argv[])
 				//back from match
 				replayState = initialState(&cfg);
 				home.lazyCam = v2::zero();
-				break;
 			}
 		}
 		//TODO replay input

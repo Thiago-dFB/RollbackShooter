@@ -87,5 +87,8 @@
     <Image Include="sprite\chars.png">
       <Filter>Resource Files\sprite</Filter>
     </Image>
+    <Image Include="sprite\logo.png">
+      <Filter>Resource Files\sprite</Filter>
+    </Image>
   </ItemGroup>
 </Project>

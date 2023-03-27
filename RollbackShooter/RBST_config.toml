@@ -43,9 +43,9 @@ arenaRadius  = "12.0"
 spawnRadius  = "10.0"   #distance of each player from the center
 
 [HitStrength]
-weakForce     = "1.0"
+weakForce     = "3.0"
 weakHitstop   = 5
-midForce      = "2.5"
+midForce      = "7.5"
 midHitstop   = 10
-strongForce   = "4.0"
+strongForce   = "12.0"
 strongHitstop = 20

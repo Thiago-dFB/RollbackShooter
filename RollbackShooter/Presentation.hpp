@@ -16,6 +16,7 @@ const int centerY = screenHeight / 2;
 
 struct Sprites
 {
+	Texture2D logo;
 	Texture2D chars;
 	Texture2D charsFlipped;
 	Texture2D projs;
@@ -77,6 +78,7 @@ static Mesh GenMeshPath()
 Sprites LoadSprites()
 {
 	Sprites sprs;
+	sprs.logo = LoadTexture("sprite/logo.png");
 	Image atlas = LoadImage("sprite/chars.png");
 	sprs.chars = LoadTextureFromImage(atlas);
 	ImageFlipHorizontal(&atlas);
@@ -107,6 +109,7 @@ Sprites LoadSprites()
 
 void UnloadSprites(Sprites sprs)
 {
+	UnloadTexture(sprs.logo);
 	UnloadTexture(sprs.chars);
 	UnloadTexture(sprs.charsFlipped);
 	UnloadTexture(sprs.projs);
@@ -231,7 +234,7 @@ void gameScene(POV pov, const GameState* state, const Config* cfg, const Camera3
 		DrawBillboardPro(*cam,
 			(p1Mirror ? sprs->charsFlipped : sprs->chars),
 			CharAtlas(1, (pov == Player1), p1Mirror, p1State),
-			fromDetVec2WithShake(state->p1.pos, camRight, fromDetNum(cfg->playerRadius), p1Shake),
+			fromDetVec2WithShake(state->p1.pos, camRight, fromDetNum(cfg->playerRadius) * 1.5, p1Shake),
 			Vector3{ 0,1,0 },
 			Vector2{ fromDetNum(cfg->playerRadius) * 3, fromDetNum(cfg->playerRadius) * 3 },
 			Vector2{ 0.0f, 0.0f },
@@ -239,7 +242,7 @@ void gameScene(POV pov, const GameState* state, const Config* cfg, const Camera3
 		DrawBillboardPro(*cam,
 			(p2Mirror ? sprs->charsFlipped : sprs->chars),
 			CharAtlas(2, (pov == Player2), p2Mirror, p2State),
-			fromDetVec2WithShake(state->p2.pos, camRight, fromDetNum(cfg->playerRadius), p2Shake),
+			fromDetVec2WithShake(state->p2.pos, camRight, fromDetNum(cfg->playerRadius) * 1.5, p2Shake),
 			Vector3{ 0,1,0 },
 			Vector2{ fromDetNum(cfg->playerRadius) * 3, fromDetNum(cfg->playerRadius) * 3 },
 			Vector2{ 0.0f, 0.0f },
@@ -478,10 +481,17 @@ void presentMenu(POV pov, const GameState* state, const Config* cfg, Camera3D* c
 			Vector2 { 0, 0 }, WHITE);
 		EndShaderMode();
 		
-		//TODO replace with grain noise texture
-		//DrawRectangle(0, 0, screenWidth, screenHeight, Color{ 0,0,0,64 });
-		
-		//TODO game logo
+		int logoSize = 12;
+		Vector2 logoPos = {
+			screenWidth / 2 - (logoSize * sprs->logo.width / 2),
+			screenHeight / 2 - (logoSize * sprs->logo.height / 2)
+		};
+		DrawTextureEx(
+			sprs->logo,
+			logoPos,
+			0.0f,
+			logoSize,
+			WHITE);
 
 		//MENU
 		float xCenter = screenWidth / 2;
@@ -517,6 +527,9 @@ void presentMenu(POV pov, const GameState* state, const Config* cfg, Camera3D* c
 		DrawRectangleLinesEx(addressField, 4, addressColor);
 		DrawText(home->remoteAddress.c_str(), addressField.x + 10, addressField.y + 10, 20, BLACK);
 		DrawText("Remote IP Address\nCtrl+V to paste it here", addressField.x, addressField.y - 50, 20, BLACK);
+
+
+		DrawText("Press F4 to show background replay", 880, 5, 20, BLACK);
 	}
 	else
 	{
