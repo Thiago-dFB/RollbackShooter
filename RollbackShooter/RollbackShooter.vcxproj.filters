@@ -58,7 +58,7 @@
     <None Include="RBST_controls.toml">
       <Filter>Resource Files</Filter>
     </None>
-    <None Include="RBST_launch.toml">
+    <None Include="RBST_home.toml">
       <Filter>Resource Files</Filter>
     </None>
     <None Include="shader\bg.fs">

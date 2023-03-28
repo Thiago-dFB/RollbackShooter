@@ -1,11 +1,11 @@
 #ifndef RBST_CONFIG_HPP
 #define RBST_CONFIG_HPP
 
-//TOML++
-#include <toml++/toml.h>
 //fpm
 #include <fpm/ios.hpp>
-
+//TOML++
+#include <toml++/toml.h>
+//-----
 #include "Math.hpp"
 
 struct Config
@@ -144,8 +144,6 @@ Config readTOMLForCfg()
 	cfg.strongHitstop = file["HitStrength"]["strongHitstop"].value_or(20);
 
 	return cfg;
-}
-
-const Config cfg = readTOMLForCfg();
+};
 
 #endif

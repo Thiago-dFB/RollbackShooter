@@ -3,11 +3,11 @@
 
 //ETL
 #include <etl/vector.h>
-
+//-----
 #include "Math.hpp"
 #include "Config.hpp"
-#include "Player.hpp"
 #include "Input.hpp"
+#include "Player.hpp"
 
 const size_t MAX_PROJECTILES = 16;
 

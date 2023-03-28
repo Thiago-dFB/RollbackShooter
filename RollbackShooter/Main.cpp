@@ -1,15 +1,14 @@
-//std
-#include <string>
 //Raylib
 #include <raylib.h>
 //TOML++
 #include <toml++/toml.h>
-
+//-----
 #include "Math.hpp"
-#include "GameState.hpp"
-#include "Input.hpp"
 #include "Config.hpp"
+#include "Input.hpp"
+#include "Replay.hpp"
 #include "Player.hpp"
+#include "GameState.hpp"
 #include "Presentation.hpp"
 #include "GGPOController.hpp"
 
@@ -23,18 +22,28 @@ int main(int argc, char* argv[])
 
 	bool cleanMode = false;
 	
-	auto launchOpt = toml::parse_file("RBST_launch.toml");
-	home.remoteAddress = launchOpt["Network"]["remoteAddress"].value_or("127.0.0.1");
-	unsigned short port = launchOpt["Network"]["port"].value_or(8001);
+	auto homeFile = toml::parse_file("RBST_home.toml");
+	home.remoteAddress = homeFile["Network"]["remoteAddress"].value_or("127.0.0.1");
+	unsigned short port = homeFile["Network"]["port"].value_or(8001);
+	int demos = homeFile["HomeScreen"]["demoFiles"].as_array()->size();
 
-	POV replayPOV = Spectator;
-	Camera3D replayCam = initialCamera();
-	GameState replayState = initialState(&cfg);
+	Config demoCfg;
+	GameState demoState;
 	ReplayReader replayR;
-	std::ostringstream replayOSS;
 
-	std::string replayFile(launchOpt["Replay"]["replayFile"].value_or("demo.rbst"));
-	openReplayFile(&replayR, replayFile.c_str());
+	std::string newDemo = homeFile["HomeScreen"]["demoFiles"][GetRandomValue(0, demos-1)].value_or("demo.rbst");
+	openReplayFile(&replayR, &demoCfg, "demo.rbst");
+	if (!replayR.fileStream.is_open())
+	{
+		//a little fallback
+		demoCfg = readTOMLForCfg();
+	}
+
+	demoState = initialState(&demoCfg);
+	
+	POV demoPOV = Spectator;
+	Camera3D demoCam = initialCamera();
+	std::ostringstream demoOSS;
 
 	home.bgTarget = LoadRenderTexture(screenWidth, screenHeight);
 	home.bgShader = LoadShader(0, "shader/bg.fs");
@@ -49,18 +58,22 @@ int main(int argc, char* argv[])
 		if (IsKeyReleased(KEY_F4))
 		{
 			home.homeScreen = !home.homeScreen;
-			if (home.homeScreen) replayPOV = Spectator;
+			if (home.homeScreen)
+			{
+				demoPOV = Spectator;
+				cleanMode = false;
+			}
 		}
 
 		if (!home.homeScreen)
 		{
 			//REPLAY CONTROLS
 			if (IsKeyPressed(KEY_F1))
-				replayPOV = Player1;
+				demoPOV = Player1;
 			else if (IsKeyPressed(KEY_F2))
-				replayPOV = Player2;
+				demoPOV = Player2;
 			else if (IsKeyPressed(KEY_F3))
-				replayPOV = Spectator;
+				demoPOV = Spectator;
 			else if (IsKeyPressed(KEY_C))
 				cleanMode = !cleanMode;
 		}
@@ -87,32 +100,30 @@ int main(int argc, char* argv[])
 				EnableCursor();
 			}
 		}
-		if (!replayR.fileStream.is_open())
-			replayOSS << "DEMO FILE NOT FOUND, YOU'VE DOOMED US ALL AAAAAAAAAAAAAAAAAAAAAA" << std::endl;
 		if (replayFileEnd(&replayR))
 		{
 			closeReplayFile(&replayR);
 			//repeat
-			replayState = initialState(&cfg);
-			openReplayFile(&replayR, replayFile.c_str());
+			openReplayFile(&replayR, &demoCfg, "demo.rbst");
+			demoState = initialState(&demoCfg);
 		}
 		InputData input = readReplayFile(&replayR);
 		//simulation
-		replayState = simulate(replayState, &cfg, input);
+		demoState = simulate(demoState, &demoCfg, input);
 		//secondary simulation
 		int currentFps = GetFPS();
-		replayOSS.str("");
-		replayOSS << "FPS: " << currentFps << std::endl;
+		demoOSS.str("");
+		demoOSS << "FPS: " << currentFps << std::endl;
 		if (!home.homeScreen)
 		{
-			replayOSS << "Press F1 and F2 for player POVs," << std::endl;
-			replayOSS << "F3 for spectator POV," << std::endl;
-			replayOSS << "C for (clean? camera? cinematic?) mode," << std::endl;
-			replayOSS << "or F4 to go back to menu." << std::endl;
+			demoOSS << "Press F1 and F2 for player POVs," << std::endl;
+			demoOSS << "F3 for spectator POV," << std::endl;
+			demoOSS << "C for (clean? camera? cinematic?) mode," << std::endl;
+			demoOSS << "or F4 to go back to menu." << std::endl;
 		}
-		if (cleanMode) replayOSS.str("");
+		if (cleanMode) demoOSS.str("");
 		//presentation
-		presentMenu(replayPOV, &replayState, &cfg, &replayCam, &sprs, &replayOSS, &home);
+		presentMenu(demoPOV, &demoState, &demoCfg, &demoCam, &sprs, &demoOSS, &home);
 	}
 	UnloadRenderTexture(home.bgTarget);
 	UnloadShader(home.bgShader);

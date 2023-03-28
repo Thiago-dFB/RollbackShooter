@@ -2,5 +2,5 @@
 remoteAddress = "127.0.0.1"
 port = 8001
 
-[Replay]
-replayFile = "demo.rbst"
+[HomeScreen]
+demoFiles = ["demo.rbst"]

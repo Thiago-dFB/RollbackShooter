@@ -1,12 +1,9 @@
 #ifndef RBST_PRESENTATION_HPP
 #define RBST_PRESENTATION_HPP
 
-//std
-#include <ostream>
-#include <string>
 //Raylib
 #include <raylib.h>
-
+//-----
 #include "Math.hpp"
 #include "GameState.hpp"
 

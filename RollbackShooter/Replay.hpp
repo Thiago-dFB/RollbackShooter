@@ -1,16 +1,6 @@
 #ifndef RBST_REPLAY_HPP
 #define RBST_REPLAY_HPP
 
-//std
-#include <vector>
-#include <ostream>
-#include <iostream>
-#include <fstream>
-#include <string>
-#include <time.h>
-#include <filesystem>
-namespace fs = std::filesystem;
-
 #include "Input.hpp"
 
 struct ReplayWriter
@@ -22,7 +12,7 @@ struct ReplayWriter
 	int32_t p2LastMouse;
 };
 
-void openReplayFile(ReplayWriter* replay)
+void openReplayFile(ReplayWriter* replay, Config* cfg)
 {
 	replay->confirmFrame = 0;
 	replay->p1LastMouse = 0;
@@ -37,10 +27,9 @@ void openReplayFile(ReplayWriter* replay)
 	fileNameOSS << currDate.tm_year + 1900 << "-" << currDate.tm_mon + 1 << "-" << currDate.tm_mday << "_";
 	fileNameOSS << currDate.tm_hour << "-" << currDate.tm_min << "-" << currDate.tm_sec;
 	fileNameOSS << ".rbst";
-
-	const fs::path demos{ "demos" };
-	fs::create_directory(demos);
-	replay->fileStream.open(demos/(fileNameOSS.str().c_str()), std::fstream::out | std::fstream::binary);
+	replay->fileStream.open(fileNameOSS.str().c_str(), std::fstream::out | std::fstream::binary);
+	//configs at the time of match get saved along with following inputs
+	replay->fileStream.write((char*)cfg, sizeof(*cfg));
 }
 
 void overwriteReplayInput(ReplayWriter* replay, InputData input, long frame)
@@ -104,7 +93,7 @@ struct ReplayReader
 	int32_t p2LastMouse;
 };
 
-void openReplayFile(ReplayReader* replay, const char* fileName)
+void openReplayFile(ReplayReader* replay, Config* cfg, const char* fileName)
 {
 	replay->p1LastMouse = 0;
 	replay->p2LastMouse = 0;
@@ -112,6 +101,8 @@ void openReplayFile(ReplayReader* replay, const char* fileName)
 	replay->fileStream.seekg(0, replay->fileStream.end);
 	replay->fileSize = replay->fileStream.tellg();
 	replay->fileStream.seekg(0, replay->fileStream.beg);
+	//configs at time of match get read first, 100bytes in total
+	replay->fileStream.read((char*)cfg, sizeof(*cfg));
 }
 
 bool replayFileEnd(ReplayReader* replay)

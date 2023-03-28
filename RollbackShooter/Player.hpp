@@ -3,10 +3,10 @@
 
 //ETL
 #include <etl/stack.h>
-
+//-----
 #include "Math.hpp"
-#include "Input.hpp"
 #include "Config.hpp"
+#include "Input.hpp"
 
 using playerid = std::uint8_t;
 

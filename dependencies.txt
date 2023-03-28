@@ -1,0 +1,50 @@
+[just a little something to help me keep track]
+
+Math
+	<fpm/fixed.hpp>
+	<fpm/math.hpp>
+	<raylib.h>
+Config
+	<fpm/ios.hpp>
+	<toml++/toml.h>
+	Math
+Input
+	<raylib.h>
+	<toml++/toml.h>
+	Math
+Replay
+	Input
+Player
+	<etl/stack.h>
+	Math
+	Config
+	Input
+GameState
+	<etl/vector.h>
+	Math
+	Config
+	Input
+	Player
+Presentation
+	<raylib.h>
+	Math
+	GameState
+GGPOController
+	<ggponet.h>
+	Config
+	Input
+	Replay
+	GameState
+	Presentation
+
+Main
+	<raylib.h>
+	<toml++/toml.h>
+    Math
+    Config
+    Input
+    Replay
+    Player
+    GameState
+    Presentation
+    GGPOController

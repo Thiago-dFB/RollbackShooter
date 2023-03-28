@@ -1,14 +1,11 @@
 #ifndef RBST_INPUT_HPP
 #define RBST_INPUT_HPP
 
-#include <istream>
-#include <ostream>
-
-//TOML++
-#include <toml++/toml.h>
 //Raylib
 #include <raylib.h>
-
+//TOML++
+#include <toml++/toml.h>
+//-----
 #include "Math.hpp"
 
 enum AttackInput

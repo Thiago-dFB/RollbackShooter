@@ -82,23 +82,18 @@ typedef struct tagBITMAPINFOHEADER {
 #ifndef RBST_GGPO_HPP
 #define RBST_GGPO_HPP
 
-//std
-#include <istream>
-#include <ostream>
-#include <stdio.h>
-#include <algorithm>
 //GGPO
 #include <ggponet.h>
-
-#include "Input.hpp"
+//-----
 #include "Config.hpp"
+#include "Input.hpp"
+#include "Replay.hpp"
 #include "GameState.hpp"
 #include "Presentation.hpp"
-#include "Replay.hpp"
 
 GameState ggState;
+Config ggCfg;
 GGPOSession* ggpo = NULL;
-GGPOPlayer ggP1, ggP2;
 GGPOPlayerHandle ggHandle1, ggHandle2, localHandle;
 bool connected = false;
 int framesAheadPenalty = -1;
@@ -149,7 +144,7 @@ bool __cdecl rbst_advance_frame_callback(int)
     InputData input { p1,p2 };
     overwriteReplayInput(replayW, input, ggState.frame);
     //simulate one step
-    ggState = simulate(ggState, &cfg, input);
+    ggState = simulate(ggState, &ggCfg, input);
     //this wasn't on vector war but GGPO does expect me to advance frames in this callback or it will fail some assertion
     ggpo_advance_frame(ggpo);
     rollbackFrames++;
@@ -241,23 +236,6 @@ void NewNetworkedSession(std::string remoteAddress, unsigned short port, playeri
     ggCallbacks.log_game_state = rbst_log_game_state;
     ggCallbacks.on_event = rbst_on_event_callback;
 
-    //ugliness number 2, from this open PR: https://github.com/pond3r/ggpo/pull/69/commits/01243225d407eafb1c2e7aa4cefca8f11a107476
-    {
-#ifdef WIN32
-        WORD wVersionRequested = MAKEWORD(2, 2);
-        WSADATA wsaData;
-        int err = WSAStartup(wVersionRequested, &wsaData);
-
-        if (err != 0) {
-            // Can comment out following lines for debugging purposes
-            //printf("WSAStartup failed with error: %d\n", err);
-            //DWORD lastError = WSAGetLastError();
-            //printf("last error code: %d\n", lastError);
-            assert(FALSE && "Error initializing winsockets");
-        }
-#endif
-    }
-
     ggRes = ggpo_start_session(&ggpo, &ggCallbacks, "RBST", 2, sizeof(PlayerInputZip), port);
 
     //Automatically disconnect at
@@ -265,6 +243,7 @@ void NewNetworkedSession(std::string remoteAddress, unsigned short port, playeri
     //Start disconnect timer at
     ggpo_set_disconnect_notify_start(ggpo, 1000);
 
+    GGPOPlayer ggP1, ggP2;
     ggP1 = ggP2 = { 0 };
     ggP1.size = ggP2.size = sizeof(GGPOPlayer);
     ggP1.player_num = 1;
@@ -299,8 +278,14 @@ void NewNetworkedSession(std::string remoteAddress, unsigned short port, playeri
 
 void NetworkedMain(const Sprites* sprs, std::string remoteAddress, unsigned short port, playerid localPlayer)
 {
+    //initializing winsockets
+    WSADATA wsaData;
+    WSAStartup(MAKEWORD(2, 2), &wsaData);
+    
+    ggCfg = readTOMLForCfg();
+    ggState = initialState(&ggCfg);
+    
     Camera3D cam = initialCamera();
-    ggState = initialState(&cfg);
     std::ostringstream gameInfoOSS;
     double semaphoreIdleTime = 0;
     long latestConfFrame = 0;
@@ -308,11 +293,11 @@ void NetworkedMain(const Sprites* sprs, std::string remoteAddress, unsigned shor
     bool diagnostics = false;
 
     ReplayWriter replay = { 0 };
-    openReplayFile(&replay);
+    openReplayFile(&replay, &ggCfg);
     replayW = &replay;
 
     NewNetworkedSession(remoteAddress, port, localPlayer);
-    while (connected && !WindowShouldClose() && !endCondition(&ggState, &cfg))
+    while (connected && !WindowShouldClose() && !endCondition(&ggState, &ggCfg))
     {
         //restore framerate to 60FPS after time sync penalty
         framesAheadPenalty = std::max(-1, framesAheadPenalty - 1);
@@ -370,7 +355,7 @@ void NetworkedMain(const Sprites* sprs, std::string remoteAddress, unsigned shor
                 PlayerInput p2 = unzipInput(zips[1]);
                 InputData input{ p1,p2 };
                 writeReplayInput(&replay, input, ggState.frame);
-                ggState = simulate(ggState, &cfg, input);
+                ggState = simulate(ggState, &ggCfg, input);
                 //Notify GGPO that a frame has passed;
                 ggpo_advance_frame(ggpo);
             }
@@ -392,13 +377,15 @@ void NetworkedMain(const Sprites* sprs, std::string remoteAddress, unsigned shor
             gameInfoOSS << "Latest confirm frame: " << latestConfFrame << "f" << std::endl;
             if (prevConfFrame > 0)
             {
+                //I'm still not sure if this EVER happens for whatever reason
+                //but when it does the replay WILL desync from what's happening in the match
                 gameInfoOSS << "ROLLBACK TO CONFIRM FRAME BEFORE LATEST DETECTED: " << prevConfFrame << " < " << latestConfFrame << std::endl;
             }
         }
         else gameInfoOSS << "[F4 for diagnostics]" << std::endl;
         gameInfoOSS << connectionString;
 
-        semaphoreIdleTime = present(pov, &ggState, &cfg, &cam, sprs, &gameInfoOSS);
+        semaphoreIdleTime = present(pov, &ggState, &ggCfg, &cam, sprs, &gameInfoOSS);
     }
     //exit session
     if (ggpo)
@@ -416,16 +403,8 @@ void NetworkedMain(const Sprites* sprs, std::string remoteAddress, unsigned shor
     closeReplayFile(&replay);
     replayW = NULL;
 
-    //ugliness number 3, also from the PR
-    {
-#ifdef WIN32
-        // https://docs.microsoft.com/en-us/windows/win32/api/winsock/nf-winsock-wsacleanup
-        int result = WSACleanup();
-        if (result != 0) {
-            assert(FALSE && "Error de-initializing winsockets");
-        }
-#endif
-    }
+    //cleaning winsockets
+    WSACleanup();
 }
 
 #endif
