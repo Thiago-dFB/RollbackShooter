@@ -351,25 +351,9 @@ GameState simulate(GameState state, const Config* cfg, InputData input)
 		//BOTH DASHING IN THIS FRAME
 		if (state.p1.pushdown.top() == PState::Dashing && state.p2.pushdown.top() == PState::Dashing)
 		{
-			//P2 PERFECT EVADES
-			if (state.p2.dashCount < cfg->dashPerfect && (v2::length(v2::sub(state.p1.pos, state.p2.perfectPos))) < (cfg->playerRadius + cfg->playerRadius))
+			//DIRECT HIT, MOST RECENT DASH LOSES
+			if (directColl)
 			{
-				damagePlayer(&(state.p1), &state, cfg, state.p2.perfectPos, 2);
-				regDamage(&state, 1);
-				state.p2.pushdown.push(PState::Hitstop);
-				state.p2.hitstopCount = cfg->midHitstop;
-			}
-			//P1 PERFECT EVADES
-			else if (state.p1.dashCount < cfg->dashPerfect && (v2::length(v2::sub(state.p2.pos, state.p1.perfectPos))) < (cfg->playerRadius + cfg->playerRadius))
-			{
-				damagePlayer(&(state.p2), &state, cfg, state.p1.perfectPos, 2);
-				regDamage(&state, 2);
-				state.p1.pushdown.push(PState::Hitstop);
-				state.p1.hitstopCount = cfg->midHitstop;
-			}
-			else if (directColl)
-			{
-				//DIRECT HIT, MOST RECENT DASH LOSES
 				int dashDiff = state.p1.dashCount - state.p2.dashCount;
 				if (dashDiff > 0)
 				{
@@ -392,6 +376,22 @@ GameState simulate(GameState state, const Config* cfg, InputData input)
 					damagePlayer(&(state.p2), &state, cfg, state.p1.pos, 2);
 					regDamage(&state, 2);
 				}
+			}
+			//P2 PERFECT EVADES
+			else if (state.p2.dashCount < cfg->dashPerfect && (v2::length(v2::sub(state.p1.pos, state.p2.perfectPos))) < (cfg->playerRadius + cfg->playerRadius))
+			{
+				damagePlayer(&(state.p1), &state, cfg, state.p2.perfectPos, 2);
+				regDamage(&state, 1);
+				state.p2.pushdown.push(PState::Hitstop);
+				state.p2.hitstopCount = cfg->midHitstop;
+			}
+			//P1 PERFECT EVADES
+			else if (state.p1.dashCount < cfg->dashPerfect && (v2::length(v2::sub(state.p2.pos, state.p1.perfectPos))) < (cfg->playerRadius + cfg->playerRadius))
+			{
+				damagePlayer(&(state.p2), &state, cfg, state.p1.perfectPos, 2);
+				regDamage(&state, 2);
+				state.p1.pushdown.push(PState::Hitstop);
+				state.p1.hitstopCount = cfg->midHitstop;
 			}
 		}
 		//P1 HITS P2
