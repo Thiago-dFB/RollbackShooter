@@ -87,6 +87,8 @@ int main(int argc, char* argv[])
 				EnableCursor();
 			}
 		}
+		if (!replayR.fileStream.is_open())
+			replayOSS << "DEMO FILE NOT FOUND, YOU'VE DOOMED US ALL AAAAAAAAAAAAAAAAAAAAAA" << std::endl;
 		if (replayFileEnd(&replayR))
 		{
 			closeReplayFile(&replayR);

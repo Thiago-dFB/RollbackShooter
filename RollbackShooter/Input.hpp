@@ -135,7 +135,7 @@ PlayerInput predictInput(PlayerInput prevInput)
 PlayerInputZip zipInput(PlayerInput input)
 {
 	PlayerInputZip zip = { 0 };
-	//0mmmmaa
+	//00mmmmaa
 	zip.movAtk = (static_cast<char>(input.mov) << 2) | static_cast<char>(input.atk);
 	zip.mouseRaw = input.mouse.raw_value();
 	return zip;
@@ -144,9 +144,9 @@ PlayerInputZip zipInput(PlayerInput input)
 PlayerInput unzipInput(PlayerInputZip zip)
 {
 	PlayerInput input;
-	//0mmmmaa
-	char movMask = 0b0111100;
-	char atkMask = 0b0000011;
+	//00mmmmaa
+	char movMask = 0b00111100;
+	char atkMask = 0b00000011;
 	input.atk = static_cast<AttackInput>(zip.movAtk & atkMask);
 	input.mov = static_cast<MoveInput>((zip.movAtk & movMask) >> 2);
 	input.mouse = input.mouse.from_raw_value(zip.mouseRaw);
