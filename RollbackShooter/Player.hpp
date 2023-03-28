@@ -167,30 +167,4 @@ void movePlayer(Player* player, const Config* cfg, PlayerInput input)
 	}
 }
 
-void damagePlayer(Player* player, const Config* cfg, Vec2 origin, int8 force)
-{
-	//CANCEL CURRENT ACTION (except if player will shoot alt shot THIS frame)
-	if (player->pushdown.top() == PState::Dashing || (player->pushdown.top() == PState::Charging && player->chargeCount >= cfg->chargeDuration))
-	{
-		player->pushdown.pop();
-	}
-	//APPLY HITSTOP AND FORCE
-	player->pushdown.push(PState::Hitstop);
-	switch (force)
-	{
-	case 1:
-		player->hitstopCount = cfg->weakHitstop;
-		player->vel = v2::add(player->vel, v2::normalizeMult(v2::sub(player->pos, origin), cfg->weakForce));
-		break;
-	case 2:
-		player->hitstopCount = cfg->midHitstop;
-		player->vel = v2::add(player->vel, v2::normalizeMult(v2::sub(player->pos, origin), cfg->midForce));
-		break;
-	case 3:
-		player->hitstopCount = cfg->strongHitstop;
-		player->vel = v2::add(player->vel, v2::normalizeMult(v2::sub(player->pos, origin), cfg->strongForce));
-		break;
-	}
-}
-
 #endif

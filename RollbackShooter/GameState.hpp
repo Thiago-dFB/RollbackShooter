@@ -79,6 +79,39 @@ void regDamage(GameState* state, playerid damaged)
 	}
 }
 
+void altShot(GameState* state, const Config* cfg, Vec2 origin, Vec2 direction, playerid owner);
+
+void damagePlayer(Player* player, GameState* state, const Config* cfg, Vec2 origin, int8 force)
+{
+	if (player->pushdown.top() == PState::Charging && player->chargeCount >= cfg->chargeDuration)
+	{
+		player->pushdown.pop();
+		altShot(state, cfg, player->pos, player->dir, player->id);
+	}
+	//CANCEL CURRENT ACTION
+	if (player->pushdown.top() == PState::Dashing || player->pushdown.top() == PState::Charging)
+	{
+		player->pushdown.pop();
+	}
+	//APPLY HITSTOP AND FORCE
+	player->pushdown.push(PState::Hitstop);
+	switch (force)
+	{
+	case 1:
+		player->hitstopCount = cfg->weakHitstop;
+		player->vel = v2::add(player->vel, v2::normalizeMult(v2::sub(player->pos, origin), cfg->weakForce));
+		break;
+	case 2:
+		player->hitstopCount = cfg->midHitstop;
+		player->vel = v2::add(player->vel, v2::normalizeMult(v2::sub(player->pos, origin), cfg->midForce));
+		break;
+	case 3:
+		player->hitstopCount = cfg->strongHitstop;
+		player->vel = v2::add(player->vel, v2::normalizeMult(v2::sub(player->pos, origin), cfg->strongForce));
+		break;
+	}
+}
+
 void altShot(GameState* state, const Config* cfg, Vec2 origin, Vec2 direction, playerid owner)
 {
 	Player* opposition;
@@ -105,7 +138,7 @@ void altShot(GameState* state, const Config* cfg, Vec2 origin, Vec2 direction, p
 	{
 		if (dotDist.y < cfg->playerRadius)
 		{
-			damagePlayer(opposition, cfg, origin, 2);
+			damagePlayer(opposition, state, cfg, origin, 2);
 			if (owner == 1)	regDamage(state, 2); else regDamage(state, 1);
 		}
 		else if (dotDist.y < cfg->grazeRadius)
@@ -124,12 +157,12 @@ void altShot(GameState* state, const Config* cfg, Vec2 origin, Vec2 direction, p
 		{
 			if (!state->p1.stunned && v2::length(v2::sub(it->pos, state->p1.pos)) < (cfg->comboRadius + cfg->playerRadius))
 			{
-				damagePlayer(&(state->p1), cfg, it->pos, 3);
+				damagePlayer(&(state->p1), state, cfg, it->pos, 3);
 				regDamage(state, 1);
 			}
 			if (!state->p2.stunned && v2::length(v2::sub(it->pos, state->p2.pos)) < (cfg->comboRadius + cfg->playerRadius))
 			{
-				damagePlayer(&(state->p2), cfg, it->pos, 3);
+				damagePlayer(&(state->p2), state, cfg, it->pos, 3);
 				regDamage(state, 2);
 			}
 			state->projs.erase(it);
@@ -283,7 +316,7 @@ GameState simulate(GameState state, const Config* cfg, InputData input)
 					}
 					else if (!state.p2.stunned && v2::length(v2::sub(it->pos, state.p2.pos)) < (cfg->playerRadius + cfg->projRadius))
 					{
-						damagePlayer(&(state.p2), cfg, it->pos, 1);
+						damagePlayer(&(state.p2), &state, cfg, it->pos, 1);
 						regDamage(&state, 2);
 						state.projs.erase(it);
 						erased = true;
@@ -303,7 +336,7 @@ GameState simulate(GameState state, const Config* cfg, InputData input)
 					}
 					else if (!state.p1.stunned && v2::length(v2::sub(it->pos, state.p1.pos)) < (cfg->playerRadius + cfg->projRadius))
 					{
-						damagePlayer(&(state.p1), cfg, it->pos, 1);
+						damagePlayer(&(state.p1), &state, cfg, it->pos, 1);
 						regDamage(&state, 1);
 						state.projs.erase(it);
 						erased = true;
@@ -321,7 +354,7 @@ GameState simulate(GameState state, const Config* cfg, InputData input)
 			//P2 PERFECT EVADES
 			if (state.p2.dashCount < cfg->dashPerfect && (v2::length(v2::sub(state.p1.pos, state.p2.perfectPos))) < (cfg->playerRadius + cfg->playerRadius))
 			{
-				damagePlayer(&(state.p1), cfg, state.p2.perfectPos, 2);
+				damagePlayer(&(state.p1), &state, cfg, state.p2.perfectPos, 2);
 				regDamage(&state, 1);
 				state.p2.pushdown.push(PState::Hitstop);
 				state.p2.hitstopCount = cfg->midHitstop;
@@ -329,7 +362,7 @@ GameState simulate(GameState state, const Config* cfg, InputData input)
 			//P1 PERFECT EVADES
 			else if (state.p1.dashCount < cfg->dashPerfect && (v2::length(v2::sub(state.p2.pos, state.p1.perfectPos))) < (cfg->playerRadius + cfg->playerRadius))
 			{
-				damagePlayer(&(state.p2), cfg, state.p1.perfectPos, 2);
+				damagePlayer(&(state.p2), &state, cfg, state.p1.perfectPos, 2);
 				regDamage(&state, 2);
 				state.p1.pushdown.push(PState::Hitstop);
 				state.p1.hitstopCount = cfg->midHitstop;
@@ -340,23 +373,23 @@ GameState simulate(GameState state, const Config* cfg, InputData input)
 				int dashDiff = state.p1.dashCount - state.p2.dashCount;
 				if (dashDiff > 0)
 				{
-					damagePlayer(&(state.p2), cfg, state.p1.pos, 2);
+					damagePlayer(&(state.p2), &state, cfg, state.p1.pos, 2);
 					regDamage(&state, 2);
 					state.p1.pushdown.push(PState::Hitstop);
 					state.p1.hitstopCount = cfg->midHitstop;
 				}
 				else if (dashDiff < 0)
 				{
-					damagePlayer(&(state.p1), cfg, state.p2.pos, 2);
+					damagePlayer(&(state.p1), &state, cfg, state.p2.pos, 2);
 					regDamage(&state, 1);
 					state.p2.pushdown.push(PState::Hitstop);
 					state.p2.hitstopCount = cfg->midHitstop;
 				}
 				else
 				{
-					damagePlayer(&(state.p1), cfg, state.p2.pos, 2);
+					damagePlayer(&(state.p1), &state, cfg, state.p2.pos, 2);
 					regDamage(&state, 1);
-					damagePlayer(&(state.p2), cfg, state.p1.pos, 2);
+					damagePlayer(&(state.p2), &state, cfg, state.p1.pos, 2);
 					regDamage(&state, 2);
 				}
 			}
@@ -364,7 +397,7 @@ GameState simulate(GameState state, const Config* cfg, InputData input)
 		//P1 HITS P2
 		else if (directColl && !state.p2.stunned && state.p1.pushdown.top() == PState::Dashing)
 		{
-			damagePlayer(&(state.p2), cfg, state.p1.pos, 2);
+			damagePlayer(&(state.p2), &state, cfg, state.p1.pos, 2);
 			regDamage(&state, 2);
 			state.p1.pushdown.push(PState::Hitstop);
 			state.p1.hitstopCount = cfg->midHitstop;
@@ -372,7 +405,7 @@ GameState simulate(GameState state, const Config* cfg, InputData input)
 		//P2 HITS P1
 		else if (directColl && !state.p1.stunned && state.p2.pushdown.top() == PState::Dashing)
 		{
-			damagePlayer(&(state.p1), cfg, state.p2.pos, 2);
+			damagePlayer(&(state.p1), &state, cfg, state.p2.pos, 2);
 			regDamage(&state, 1);
 			state.p2.pushdown.push(PState::Hitstop);
 			state.p2.hitstopCount = cfg->midHitstop;
