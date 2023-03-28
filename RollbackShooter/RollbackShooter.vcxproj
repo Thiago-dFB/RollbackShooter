@@ -183,17 +183,17 @@
     <Image Include="sprite\hearts.png">
       <DeploymentContent>true</DeploymentContent>
     </Image>
-    <Image Include="sprite\hitscanBlue.png">
-      <DeploymentContent>true</DeploymentContent>
-    </Image>
-    <Image Include="sprite\hitscanRed.png">
-      <DeploymentContent>true</DeploymentContent>
-    </Image>
     <Image Include="sprite\logo.png" />
     <Image Include="sprite\projs.png">
       <DeploymentContent>true</DeploymentContent>
     </Image>
     <Image Include="sprite\radius.png">
+      <DeploymentContent>true</DeploymentContent>
+    </Image>
+    <Image Include="sprite\railBlue.png">
+      <DeploymentContent>true</DeploymentContent>
+    </Image>
+    <Image Include="sprite\railRed.png">
       <DeploymentContent>true</DeploymentContent>
     </Image>
   </ItemGroup>

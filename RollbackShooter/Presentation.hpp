@@ -98,10 +98,10 @@ Sprites LoadSprites()
 	sprs.path.charge.path = LoadModelFromMesh(GenMeshPath());
 	sprs.path.charge.path.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = sprs.path.charge.texture;
 	sprs.path.charge.path.materials[0].shader = sprs.path.charge.shader;
-	sprs.path.hitscanRed.texture = LoadTexture("sprite/hitscanRed.png");
+	sprs.path.hitscanRed.texture = LoadTexture("sprite/railRed.png");
 	sprs.path.hitscanRed.path = LoadModelFromMesh(GenMeshPath());
 	sprs.path.hitscanRed.path.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = sprs.path.hitscanRed.texture;
-	sprs.path.hitscanBlue.texture = LoadTexture("sprite/hitscanBlue.png");
+	sprs.path.hitscanBlue.texture = LoadTexture("sprite/railBlue.png");
 	sprs.path.hitscanBlue.path = LoadModelFromMesh(GenMeshPath());
 	sprs.path.hitscanBlue.path.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = sprs.path.hitscanBlue.texture;
 

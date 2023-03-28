@@ -66,7 +66,7 @@ Config readTOMLForCfg()
 
 	cfg.ammoMax = file["PlayerResources"]["ammoMax"].value_or(120);
 	cfg.shotCost = file["PlayerResources"]["shotCost"].value_or(60);
-	cfg.altShotCost = file["PlayerResources"]["altShotCost"].value_or(120);
+	cfg.altShotCost = file["PlayerResources"]["railCost"].value_or(120);
 	cfg.staminaMax = file["PlayerResources"]["staminaMax"].value_or(150);
 	cfg.dashCost = file["PlayerResources"]["dashCost"].value_or(50);
 
@@ -91,11 +91,11 @@ Config readTOMLForCfg()
 	iss >> extract;
 	cfg.playerDashSpeed = (extract / num_det{ 60 });
 
-	iss.str(file["ProjSpeed"]["projSpeed"].value_or("0.6"));
+	iss.str(file["Projectiles"]["projSpeed"].value_or("0.6"));
 	iss.seekg(0, iss.beg);
 	iss >> extract;
 	cfg.projSpeed = extract / num_det{ 60 };
-	iss.str(file["ProjSpeed"]["projCounterMultiply"].value_or("1.2"));
+	iss.str(file["Projectiles"]["projCounterMultiply"].value_or("1.2"));
 	iss.seekg(0, iss.beg);
 	iss >> extract;
 	cfg.projCounterMultiply = extract;

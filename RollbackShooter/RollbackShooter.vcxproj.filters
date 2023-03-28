@@ -81,12 +81,6 @@
     <Image Include="sprite\charge.png">
       <Filter>Resource Files\sprite</Filter>
     </Image>
-    <Image Include="sprite\hitscanBlue.png">
-      <Filter>Resource Files\sprite</Filter>
-    </Image>
-    <Image Include="sprite\hitscanRed.png">
-      <Filter>Resource Files\sprite</Filter>
-    </Image>
     <Image Include="sprite\chars.png">
       <Filter>Resource Files\sprite</Filter>
     </Image>
@@ -94,6 +88,12 @@
       <Filter>Resource Files\sprite</Filter>
     </Image>
     <Image Include="sprite\hearts.png">
+      <Filter>Resource Files\sprite</Filter>
+    </Image>
+    <Image Include="sprite\railRed.png">
+      <Filter>Resource Files\sprite</Filter>
+    </Image>
+    <Image Include="sprite\railBlue.png">
       <Filter>Resource Files\sprite</Filter>
     </Image>
   </ItemGroup>
