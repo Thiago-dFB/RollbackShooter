@@ -41,13 +41,12 @@ void overwriteReplayInput(ReplayWriter* replay, InputData input, long frame)
 void writeReplayInput(ReplayWriter* replay, InputData input, long frame)
 {
 	int index = static_cast<int>(frame - replay->confirmFrame);
-	assert(replay->inputBuffer.size() == index);
 	replay->inputBuffer.push_back(input);
 }
 
 void consumeReplayInput(ReplayWriter* replay, long confFrame)
 {
-	while (replay->confirmFrame < confFrame)
+	while (replay->confirmFrame < (confFrame-15))
 	{
 		InputData input = replay->inputBuffer.front();
 		char zipHeaders[2] = { 0 };

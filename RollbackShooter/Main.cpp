@@ -114,7 +114,11 @@ int main(int argc, char* argv[])
 		int currentFps = GetFPS();
 		demoOSS.str("");
 		demoOSS << "FPS: " << currentFps << std::endl;
-		if (!home.homeScreen)
+		if (home.homeScreen)
+		{
+			demoOSS << std::endl << "/// A game by Thiago da Fonte ///" << std::endl;
+		}
+		else
 		{
 			demoOSS << "Press F1 and F2 for player POVs," << std::endl;
 			demoOSS << "F3 for spectator POV," << std::endl;

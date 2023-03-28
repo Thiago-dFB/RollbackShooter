@@ -345,7 +345,7 @@ void gameScene(POV pov, const GameState* state, const Config* cfg, const Camera3
 		for (auto it = state->projs.begin(); it != state->projs.end(); ++it)
 		{
 			Vec2 futurePos = v2::add(it->pos, v2::scalarMult(it->vel, num_det{ framesToAltShot }));
-			bool withinReach = v2::length(futurePos) < cfg->arenaRadius;
+			bool withinReach = pov != Spectator && v2::length(futurePos) < cfg->arenaRadius;
 			//draw projectile
 			switch (it->owner)
 			{
@@ -609,7 +609,7 @@ void presentMenu(POV pov, const GameState* state, const Config* cfg, Camera3D* c
 		DrawText("Remote IP Address\nCtrl+V to paste it here", addressField.x, addressField.y - 50, 20, BLACK);
 
 
-		DrawText("Press F4 to show background replay", 880, 5, 20, BLACK);
+		DrawText("Press F4 to show background demo", 880, 5, 20, BLACK);
 	}
 	else
 	{
@@ -619,7 +619,7 @@ void presentMenu(POV pov, const GameState* state, const Config* cfg, Camera3D* c
 			Vector2{ 0, 0 }, WHITE);
 	}
 
-	DrawText(gameInfoOSS->str().c_str(), 5, 5, 20, GRAY);
+	DrawText(gameInfoOSS->str().c_str(), 5, 5, 20, BLACK);
 
 	EndDrawing();
 }

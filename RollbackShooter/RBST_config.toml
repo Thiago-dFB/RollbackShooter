@@ -36,7 +36,7 @@ projCounterMultiply = "1.2"
 
 [Radius]
 playerRadius = "0.5"
-grazeRadius  = "0.7"
+grazeRadius  = "0.9"
 projRadius   = "0.3"
 comboRadius  = "6.0"
 arenaRadius  = "12.0"

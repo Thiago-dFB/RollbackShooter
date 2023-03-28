@@ -160,6 +160,7 @@ bool __cdecl rbst_advance_frame_callback(int)
 bool __cdecl rbst_load_game_state_callback(unsigned char* buffer, int len)
 {
     memcpy(&ggState, buffer, len);
+    rollbackFrames = 0;
     return true;
 }
 
@@ -324,11 +325,6 @@ void NetworkedMain(const Sprites* sprs, std::string remoteAddress, unsigned shor
 
         rollbackWorst = std::max(rollbackWorst, rollbackFrames);
         confirmFrame = ggState.frame - rollbackFrames;
-        //check if rollback ever comes back to a frame before the latest confirm one
-        if (confirmFrame < latestConfFrame)
-            prevConfFrame = confirmFrame;
-        else
-            latestConfFrame = confirmFrame;
 
         consumeReplayInput(&replay, confirmFrame);
         
@@ -374,13 +370,6 @@ void NetworkedMain(const Sprites* sprs, std::string remoteAddress, unsigned shor
             gameInfoOSS << "Semaphore idle time: " << semaphoreIdleTime * 1000 << " ms" << std::endl;
             gameInfoOSS << "Rollbacked frames:" << rollbackFrames << "f" << std::endl;
             gameInfoOSS << "Worst rollback: " << rollbackWorst << "f" << std::endl;
-            gameInfoOSS << "Latest confirm frame: " << latestConfFrame << "f" << std::endl;
-            if (prevConfFrame > 0)
-            {
-                //I'm still not sure if this EVER happens for whatever reason
-                //but when it does the replay WILL desync from what's happening in the match
-                gameInfoOSS << "ROLLBACK TO CONFIRM FRAME BEFORE LATEST DETECTED: " << prevConfFrame << " < " << latestConfFrame << std::endl;
-            }
         }
         else gameInfoOSS << "[F4 for diagnostics]" << std::endl;
         gameInfoOSS << connectionString;
