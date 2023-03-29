@@ -73,6 +73,15 @@
     <None Include="shader\path.fs">
       <Filter>Resource Files\shader</Filter>
     </None>
+    <None Include="shader\combo.fs">
+      <Filter>Resource Files\shader</Filter>
+    </None>
+    <None Include="shader\combo.vs">
+      <Filter>Resource Files\shader</Filter>
+    </None>
+    <None Include="shader\combo_invert.vs">
+      <Filter>Resource Files\shader</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Image Include="sprite\projs.png">
@@ -100,6 +109,9 @@
       <Filter>Resource Files\sprite</Filter>
     </Image>
     <Image Include="sprite\effects.png">
+      <Filter>Resource Files\sprite</Filter>
+    </Image>
+    <Image Include="sprite\arena.png">
       <Filter>Resource Files\sprite</Filter>
     </Image>
   </ItemGroup>

@@ -27,6 +27,10 @@ struct Sprites
 		Texture2D texture;
 	} radius;
 	struct {
+		Model plane;
+		Texture2D texture;
+	} arena;
+	struct {
 		struct {
 			Model path;
 			Texture2D texture;
@@ -42,8 +46,21 @@ struct Sprites
 			Texture2D texture;
 		} hitscanBlue;
 	} path;
+	struct {
+		Model model;
+		Shader shader;
+		int filter;
+		int pos;
+		int fade;
+		struct {
+			Model model;
+			Shader shader;
+			int filter;
+			int pos;
+			int fade;
+		} invert;
+	} combo;
 };
-
 
 static Mesh GenMeshPath()
 {
@@ -94,6 +111,10 @@ Sprites LoadSprites()
 	sprs.radius.plane = LoadModelFromMesh(GenMeshPlane(1.0f, 1.0f, 1, 1));
 	sprs.radius.plane.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = sprs.radius.texture;
 	sprs.radius.plane.materials[0].shader = sprs.billShader;
+	sprs.arena.texture = LoadTexture("sprite/arena.png");
+	sprs.arena.plane = LoadModelFromMesh(GenMeshPlane(1.0f, 1.0f, 1, 1));
+	sprs.arena.plane.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = sprs.arena.texture;
+	sprs.arena.plane.materials[0].shader = sprs.billShader;
 
 	sprs.path.charge.shader = LoadShader(0,"shader/path.fs");
 	sprs.path.charge.scroll = GetShaderLocation(sprs.path.charge.shader, "scroll");
@@ -107,6 +128,19 @@ Sprites LoadSprites()
 	sprs.path.hitscanBlue.texture = LoadTexture("sprite/railBlue.png");
 	sprs.path.hitscanBlue.path = LoadModelFromMesh(GenMeshPath());
 	sprs.path.hitscanBlue.path.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = sprs.path.hitscanBlue.texture;
+
+	sprs.combo.shader = LoadShader("shader/combo.vs", "shader/combo.fs");
+	sprs.combo.filter = GetShaderLocation(sprs.combo.shader, "filter");
+	sprs.combo.pos = GetShaderLocation(sprs.combo.shader, "pos");
+	sprs.combo.fade = GetShaderLocation(sprs.combo.shader, "fade");
+	sprs.combo.model = LoadModelFromMesh(GenMeshSphere(1.0f, 20, 20));
+	sprs.combo.model.materials[0].shader = sprs.combo.shader;
+	sprs.combo.invert.shader = LoadShader("shader/combo_invert.vs", "shader/combo.fs");
+	sprs.combo.invert.filter = GetShaderLocation(sprs.combo.invert.shader, "filter");
+	sprs.combo.invert.pos = GetShaderLocation(sprs.combo.invert.shader, "pos");
+	sprs.combo.invert.fade = GetShaderLocation(sprs.combo.invert.shader, "fade");
+	sprs.combo.invert.model = LoadModelFromMesh(GenMeshSphere(1.0f, 20, 20));
+	sprs.combo.invert.model.materials[0].shader = sprs.combo.invert.shader;
 
 	return sprs;
 }
@@ -122,6 +156,8 @@ void UnloadSprites(Sprites sprs)
 	UnloadShader(sprs.billShader);
 	UnloadTexture(sprs.radius.texture);
 	UnloadModel(sprs.radius.plane);
+	UnloadTexture(sprs.arena.texture);
+	UnloadModel(sprs.arena.plane);
 	UnloadShader(sprs.path.charge.shader);
 	UnloadTexture(sprs.path.charge.texture);
 	UnloadModel(sprs.path.charge.path);
@@ -129,6 +165,10 @@ void UnloadSprites(Sprites sprs)
 	UnloadModel(sprs.path.hitscanRed.path);
 	UnloadTexture(sprs.path.hitscanBlue.texture);
 	UnloadModel(sprs.path.hitscanBlue.path);
+	UnloadModel(sprs.combo.model);
+	UnloadShader(sprs.combo.shader);
+	UnloadModel(sprs.combo.invert.model);
+	UnloadShader(sprs.combo.invert.shader);
 }
 
 //state: 0=default, 1=dashing, 2=stunned
@@ -186,6 +226,8 @@ void setCamera(Camera3D* cam, Vec2* lazyCam, const GameState* state, POV pov)
 		Vec2 midDist = v2::scalarDiv(v2::sub(state->p1.pos, state->p2.pos), num_det{ 2 });
 		Vec2 actionCenter = v2::add(state->p2.pos, midDist);
 		Vec2 standBack = v2::rotate(v2::scalarMult(midDist, standBackMult), -camBack.half_pi());
+		if (v2::length(standBack) < fpm::abs(camBack))
+			standBack = v2::normalizeMult(standBack, fpm::abs(camBack));
 		*lazyCam = v2::lerp(*lazyCam, v2::add(actionCenter, standBack), laziness);
 		cam->position = fromDetVec2(*lazyCam, specHeight);
 		cam->target = fromDetVec2(actionCenter, tgtHeight);
@@ -212,199 +254,227 @@ void drawBars(const Player* player, const Config* cfg)
 void gameScene(POV pov, const GameState* state, const SecSimParticles* particles, const Config* cfg, const Camera3D* cam, const Sprites* sprs)
 {
 	BeginMode3D(*cam);
+	BeginShaderMode(sprs->billShader);
 	{
-		//draw players (and their alt shot direction if they're charging)
-		BeginShaderMode(sprs->billShader);
+		//DRAW ARENA
+		{
+			DrawModel(
+				sprs->arena.plane,
+				Vector3{ 0.0f, -0.01f, 0.0f },
+				fromDetNum(cfg->arenaRadius) * 2,
+				WHITE);
+			DrawGrid(10, static_cast<float>(cfg->arenaRadius) / 10.0f);
+		}
 
-		Vec2 camAngle {
+		//DRAW PLAYERS (and their alt shot direction if they're charging)
+		{
+			Vec2 camAngle{
 			num_det{ cam->target.x - cam->position.x },
 			num_det{ cam->target.z - cam->position.z }
-		};
-		Vec2 camRight = v2::normalize(v2::rotate(camAngle, camAngle.x.half_pi()));
+			};
+			Vec2 camRight = v2::normalize(v2::rotate(camAngle, camAngle.x.half_pi()));
 
-		float p1Shake = 0, p2Shake = 0;
-		int p1State = 0, p2State = 0;
-		bool p1Mirror = false, p2Mirror = false;
-		if (state->p1.stunned)
-		{
-			p1State = 2;
-			p1Shake = state->p1.hitstopCount * GetRandomValue(-10, 10) / 300.0f;
-			p1Mirror = v2::dot(camRight, state->p1.vel) < num_det{ 0 };
-		}
-		else if (state->p1.pushdown.top() == Dashing)
-		{
-			p1State = 1;
-			p1Mirror = v2::dot(camRight, state->p1.dashVel) < num_det{ 0 };
-		}
-		else p1Mirror = (!pov == Player1) && v2::dot(camRight, state->p1.dir) < num_det{ 0 };
-
-		if (state->p2.stunned)
-		{
-			p2State = 2;
-			p2Shake = state->p2.hitstopCount * GetRandomValue(-10, 10) / 300.0f;
-			p2Mirror = v2::dot(camRight, state->p2.vel) < num_det{ 0 };
-		}
-		else if (state->p2.pushdown.top() == Dashing)
-		{
-			p2State = 1;
-			p2Mirror = v2::dot(camRight, state->p2.dashVel) < num_det{ 0 };
-		}
-		else p2Mirror = (!pov == Player2) && v2::dot(camRight, state->p2.dir) < num_det{ 0 };
-
-		//player sprites
-		DrawBillboardPro(*cam,
-			(p1Mirror ? sprs->charsFlipped : sprs->chars),
-			CharAtlas(1, (pov == Player1), p1Mirror, p1State),
-			fromDetVec2WithShake(state->p1.pos, camRight, fromDetNum(cfg->playerRadius) * 1.5, p1Shake),
-			Vector3{ 0,1,0 },
-			Vector2{ fromDetNum(cfg->playerRadius) * 3, fromDetNum(cfg->playerRadius) * 3 },
-			Vector2{ 0.0f, 0.0f },
-			0.0f, WHITE);
-		DrawBillboardPro(*cam,
-			(p2Mirror ? sprs->charsFlipped : sprs->chars),
-			CharAtlas(2, (pov == Player2), p2Mirror, p2State),
-			fromDetVec2WithShake(state->p2.pos, camRight, fromDetNum(cfg->playerRadius) * 1.5, p2Shake),
-			Vector3{ 0,1,0 },
-			Vector2{ fromDetNum(cfg->playerRadius) * 3, fromDetNum(cfg->playerRadius) * 3 },
-			Vector2{ 0.0f, 0.0f },
-			0.0f, WHITE);
-		//player radius
-		DrawModel(
-			sprs->radius.plane,
-			fromDetVec2(state->p1.pos, .01f),
-			fromDetNum(cfg->playerRadius) * 2,
-			WHITE);
-		DrawModel(
-			sprs->radius.plane,
-			fromDetVec2(state->p2.pos, .01f),
-			fromDetNum(cfg->playerRadius) * 2,
-			WHITE);
-
-		//draw charge paths
-		if (state->p1.pushdown.top() == PState::Charging)
-		{
-			float angle = RAD2DEG * angleFromDetVec2(state->p1.dir);
-			float divert = 1.0f - (static_cast<float>(state->p1.chargeCount) / static_cast<float>(cfg->chargeDuration));
-			float scroll = (divert * divert);
-			SetShaderValue(sprs->path.charge.shader, sprs->path.charge.scroll, &scroll, SHADER_UNIFORM_FLOAT);
-			DrawModelEx(sprs->path.charge.path,
-				fromDetVec2(state->p1.pos, .01f),
-				Vector3{ 0,-1,0 },
-				angle,
-				Vector3{ 1,1,.25 },
-				WHITE);
-			DrawModelEx(sprs->path.charge.path,
-				fromDetVec2(state->p1.pos, .005f),
-				Vector3{ 0,-1,0 },
-				angle + (divert * 30),
-				Vector3{ 1,1,.1 },
-				WHITE);
-			DrawModelEx(sprs->path.charge.path,
-				fromDetVec2(state->p1.pos, .005f),
-				Vector3{ 0,-1,0 },
-				angle - (divert * 30),
-				Vector3{ 1,1,.1 },
-				WHITE);
-		}
-		if (state->p2.pushdown.top() == PState::Charging)
-		{
-			float angle = RAD2DEG * angleFromDetVec2(state->p2.dir);
-			float divert = 1.0f - (static_cast<float>(state->p2.chargeCount) / static_cast<float>(cfg->chargeDuration));
-			float scroll = (divert * divert);
-			SetShaderValue(sprs->path.charge.shader, sprs->path.charge.scroll, &scroll, SHADER_UNIFORM_FLOAT);
-			DrawModelEx(sprs->path.charge.path,
-				fromDetVec2(state->p2.pos, .01f),
-				Vector3{ 0,-1,0 },
-				angle,
-				Vector3{ 1,1,.25 },
-				WHITE);
-			DrawModelEx(sprs->path.charge.path,
-				fromDetVec2(state->p2.pos, .005f),
-				Vector3{ 0,-1,0 },
-				angle + (divert * 30),
-				Vector3{ 1,1,.1 },
-				WHITE);
-			DrawModelEx(sprs->path.charge.path,
-				fromDetVec2(state->p2.pos, .005f),
-				Vector3{ 0,-1,0 },
-				angle - (divert * 30),
-				Vector3{ 1,1,.1 },
-				WHITE);
-		}
-
-		//draw projectiles
-		bool showCombos = false;
-		int framesToAltShot = 0;
-		switch (pov)
-		{
-		case Player1:
-			showCombos = state->p1.ammo >= cfg->altShotCost;
-			framesToAltShot = state->p1.pushdown.top() == Charging ? (cfg->chargeDuration - state->p1.chargeCount) : cfg->chargeDuration;
-			break;
-		case Player2:
-			showCombos = state->p2.ammo >= cfg->altShotCost;
-			framesToAltShot = state->p2.pushdown.top() == Charging ? (cfg->chargeDuration - state->p2.chargeCount) : cfg->chargeDuration;
-			break;
-		}
-		for (auto it = state->projs.begin(); it != state->projs.end(); ++it)
-		{
-			Vec2 futurePos = v2::add(it->pos, v2::scalarMult(it->vel, num_det{ framesToAltShot }));
-			bool withinReach = pov != Spectator && v2::length(futurePos) < cfg->arenaRadius;
-			//draw projectile
-			switch (it->owner)
+			float p1Shake = 0, p2Shake = 0;
+			int p1State = 0, p2State = 0;
+			bool p1Mirror = false, p2Mirror = false;
+			if (state->p1.stunned)
 			{
-			case 1:
-				DrawBillboardPro(*cam,
-					sprs->projs,
-					Rectangle{ 0,0,32,32 }, //source rect
-					fromDetVec2(it->pos, fromDetNum(cfg->playerRadius)*2), //world pos
-					Vector3{ 0.0f,1.0f,0.0f }, //up vector
-					Vector2{ fromDetNum(cfg->projRadius) * 4, fromDetNum(cfg->projRadius) * 4 }, //size (proj size is defined by circle with half dimensions of sprite)
-					Vector2{ 0.0f, 0.0f }, //anchor for rotation and scaling
-					12*it->lifetime, //rotation (degrees per frame)
-					WHITE);
-				break;
-			case 2:
-				DrawBillboardPro(*cam,
-					sprs->projs,
-					Rectangle{ 32,0,32,32 }, //source rect
-					fromDetVec2(it->pos, fromDetNum(cfg->playerRadius) * 2), //world pos
-					Vector3{ 0.0f,1.0f,0.0f }, //up vector
-					Vector2{ fromDetNum(cfg->projRadius) * 4, fromDetNum(cfg->projRadius) * 4 }, //size (proj size is defined by circle with half dimensions of sprite)
-					Vector2{ 0.0f, 0.0f }, //anchor for rotation and scaling
-					12*it->lifetime, //rotation (degrees per frame)
-					WHITE);
-				break;
+				p1State = 2;
+				p1Shake = state->p1.hitstopCount * GetRandomValue(-10, 10) / 300.0f;
+				p1Mirror = v2::dot(camRight, state->p1.vel) < num_det{ 0 };
 			}
-			//draw future position and combo radius
-			if (withinReach)
+			else if (state->p1.pushdown.top() == Dashing)
 			{
-				DrawBillboardPro(*cam,
-					sprs->projs,
-					Rectangle{ 64,0,32,32 }, //source rect
-					fromDetVec2(futurePos, fromDetNum(cfg->playerRadius) * 2), //world pos
-					Vector3{ 0.0f,1.0f,0.0f }, //up vector
-					Vector2{ fromDetNum(cfg->projRadius) * 2, fromDetNum(cfg->projRadius) * 2 }, //size
-					Vector2{ 0.0f, 0.0f }, //anchor for rotation and scaling
-					0.0f,
-					WHITE);
-				if (showCombos)
-				{
-					DrawCylinderWires(
-						fromDetVec2(futurePos),
-						fromDetNum(cfg->comboRadius),
-						fromDetNum(cfg->comboRadius),
-						.1f, 10, PURPLE);
-				}
+				p1State = 1;
+				p1Mirror = v2::dot(camRight, state->p1.dashVel) < num_det{ 0 };
 			}
-			//draw ground radius
+			else p1Mirror = (!pov == Player1) && v2::dot(camRight, state->p1.dir) < num_det{ 0 };
+
+			if (state->p2.stunned)
+			{
+				p2State = 2;
+				p2Shake = state->p2.hitstopCount * GetRandomValue(-10, 10) / 300.0f;
+				p2Mirror = v2::dot(camRight, state->p2.vel) < num_det{ 0 };
+			}
+			else if (state->p2.pushdown.top() == Dashing)
+			{
+				p2State = 1;
+				p2Mirror = v2::dot(camRight, state->p2.dashVel) < num_det{ 0 };
+			}
+			else p2Mirror = (!pov == Player2) && v2::dot(camRight, state->p2.dir) < num_det{ 0 };
+
+			//player sprites
+			DrawBillboardPro(*cam,
+				(p1Mirror ? sprs->charsFlipped : sprs->chars),
+				CharAtlas(1, (pov == Player1), p1Mirror, p1State),
+				fromDetVec2WithShake(state->p1.pos, camRight, fromDetNum(cfg->playerRadius) * 1.5, p1Shake),
+				Vector3{ 0,1,0 },
+				Vector2{ fromDetNum(cfg->playerRadius) * 3, fromDetNum(cfg->playerRadius) * 3 },
+				Vector2{ 0.0f, 0.0f },
+				0.0f, WHITE);
+			DrawBillboardPro(*cam,
+				(p2Mirror ? sprs->charsFlipped : sprs->chars),
+				CharAtlas(2, (pov == Player2), p2Mirror, p2State),
+				fromDetVec2WithShake(state->p2.pos, camRight, fromDetNum(cfg->playerRadius) * 1.5, p2Shake),
+				Vector3{ 0,1,0 },
+				Vector2{ fromDetNum(cfg->playerRadius) * 3, fromDetNum(cfg->playerRadius) * 3 },
+				Vector2{ 0.0f, 0.0f },
+				0.0f, WHITE);
+
+			//player radius
 			DrawModel(
 				sprs->radius.plane,
-				fromDetVec2(it->pos, .01f),
-				fromDetNum(cfg->projRadius) * 2,
+				fromDetVec2(state->p1.pos, .01f),
+				fromDetNum(cfg->playerRadius) * 2,
 				WHITE);
+			DrawModel(
+				sprs->radius.plane,
+				fromDetVec2(state->p2.pos, .01f),
+				fromDetNum(cfg->playerRadius) * 2,
+				WHITE);
+
+			//charge paths
+			if (state->p1.pushdown.top() == PState::Charging)
+			{
+				float angle = RAD2DEG * angleFromDetVec2(state->p1.dir);
+				float divert = 1.0f - (static_cast<float>(state->p1.chargeCount) / static_cast<float>(cfg->chargeDuration));
+				float scroll = (divert * divert);
+				SetShaderValue(sprs->path.charge.shader, sprs->path.charge.scroll, &scroll, SHADER_UNIFORM_FLOAT);
+				DrawModelEx(sprs->path.charge.path,
+					fromDetVec2(state->p1.pos, .01f),
+					Vector3{ 0,-1,0 },
+					angle,
+					Vector3{ 1,1,.25 },
+					WHITE);
+				DrawModelEx(sprs->path.charge.path,
+					fromDetVec2(state->p1.pos, .005f),
+					Vector3{ 0,-1,0 },
+					angle + (divert * 30),
+					Vector3{ 1,1,.1 },
+					WHITE);
+				DrawModelEx(sprs->path.charge.path,
+					fromDetVec2(state->p1.pos, .005f),
+					Vector3{ 0,-1,0 },
+					angle - (divert * 30),
+					Vector3{ 1,1,.1 },
+					WHITE);
+			}
+			if (state->p2.pushdown.top() == PState::Charging)
+			{
+				float angle = RAD2DEG * angleFromDetVec2(state->p2.dir);
+				float divert = 1.0f - (static_cast<float>(state->p2.chargeCount) / static_cast<float>(cfg->chargeDuration));
+				float scroll = (divert * divert);
+				SetShaderValue(sprs->path.charge.shader, sprs->path.charge.scroll, &scroll, SHADER_UNIFORM_FLOAT);
+				DrawModelEx(sprs->path.charge.path,
+					fromDetVec2(state->p2.pos, .01f),
+					Vector3{ 0,-1,0 },
+					angle,
+					Vector3{ 1,1,.25 },
+					WHITE);
+				DrawModelEx(sprs->path.charge.path,
+					fromDetVec2(state->p2.pos, .005f),
+					Vector3{ 0,-1,0 },
+					angle + (divert * 30),
+					Vector3{ 1,1,.1 },
+					WHITE);
+				DrawModelEx(sprs->path.charge.path,
+					fromDetVec2(state->p2.pos, .005f),
+					Vector3{ 0,-1,0 },
+					angle - (divert * 30),
+					Vector3{ 1,1,.1 },
+					WHITE);
+			}
 		}
-		//draw particles
+
+		//DRAW PROJECTILE
+		{
+			bool showCombos = false;
+			int framesToAltShot = 0;
+			switch (pov)
+			{
+			case Player1:
+				showCombos = state->p1.ammo >= cfg->altShotCost;
+				framesToAltShot = state->p1.pushdown.top() == Charging ? (cfg->chargeDuration - state->p1.chargeCount) : cfg->chargeDuration;
+				break;
+			case Player2:
+				showCombos = state->p2.ammo >= cfg->altShotCost;
+				framesToAltShot = state->p2.pushdown.top() == Charging ? (cfg->chargeDuration - state->p2.chargeCount) : cfg->chargeDuration;
+				break;
+			}
+			for (auto it = state->projs.begin(); it != state->projs.end(); ++it)
+			{
+				Vec2 futurePos = v2::add(it->pos, v2::scalarMult(it->vel, num_det{ framesToAltShot }));
+				bool withinReach = pov != Spectator && v2::length(futurePos) < cfg->arenaRadius;
+				//draw projectile
+				switch (it->owner)
+				{
+				case 1:
+					DrawBillboardPro(*cam,
+						sprs->projs,
+						Rectangle{ 0,0,32,32 }, //source rect
+						fromDetVec2(it->pos, fromDetNum(cfg->playerRadius) * 2), //world pos
+						Vector3{ 0.0f,1.0f,0.0f }, //up vector
+						Vector2{ fromDetNum(cfg->projRadius) * 4, fromDetNum(cfg->projRadius) * 4 }, //size (proj size is defined by circle with half dimensions of sprite)
+						Vector2{ 0.0f, 0.0f }, //anchor for rotation and scaling
+						12 * it->lifetime, //rotation (degrees per frame)
+						WHITE);
+					break;
+				case 2:
+					DrawBillboardPro(*cam,
+						sprs->projs,
+						Rectangle{ 32,0,32,32 }, //source rect
+						fromDetVec2(it->pos, fromDetNum(cfg->playerRadius) * 2), //world pos
+						Vector3{ 0.0f,1.0f,0.0f }, //up vector
+						Vector2{ fromDetNum(cfg->projRadius) * 4, fromDetNum(cfg->projRadius) * 4 }, //size (proj size is defined by circle with half dimensions of sprite)
+						Vector2{ 0.0f, 0.0f }, //anchor for rotation and scaling
+						12 * it->lifetime, //rotation (degrees per frame)
+						WHITE);
+					break;
+				}
+				//draw future position and combo radius
+				if (withinReach)
+				{
+					DrawBillboardPro(*cam,
+						sprs->projs,
+						Rectangle{ 64,0,32,32 }, //source rect
+						fromDetVec2(futurePos, fromDetNum(cfg->playerRadius) * 2), //world pos
+						Vector3{ 0.0f,1.0f,0.0f }, //up vector
+						Vector2{ fromDetNum(cfg->projRadius) * 2, fromDetNum(cfg->projRadius) * 2 }, //size
+						Vector2{ 0.0f, 0.0f }, //anchor for rotation and scaling
+						0.0f,
+						WHITE);
+					if (showCombos)
+					{
+						float filter = 0.01;
+						float pos[2] = { fromDetNum(futurePos.x), fromDetNum(futurePos.y) };
+						float fade = 0.0;
+						SetShaderValue(sprs->combo.shader, sprs->combo.filter, &filter, SHADER_UNIFORM_FLOAT);
+						SetShaderValue(sprs->combo.shader, sprs->combo.pos, pos, SHADER_UNIFORM_VEC2);
+						SetShaderValue(sprs->combo.shader, sprs->combo.fade, &fade, SHADER_UNIFORM_FLOAT);
+						DrawModel(sprs->combo.model,
+							fromDetVec2(futurePos, fromDetNum(cfg->playerRadius) * 2),
+							fromDetNum(cfg->comboRadius),
+							WHITE);
+						SetShaderValue(sprs->combo.invert.shader, sprs->combo.invert.filter, &filter, SHADER_UNIFORM_FLOAT);
+						SetShaderValue(sprs->combo.invert.shader, sprs->combo.invert.pos, pos, SHADER_UNIFORM_VEC2);
+						SetShaderValue(sprs->combo.invert.shader, sprs->combo.invert.fade, &fade, SHADER_UNIFORM_FLOAT);
+						DrawModel(sprs->combo.invert.model,
+							fromDetVec2(futurePos, fromDetNum(cfg->playerRadius) * 2),
+							fromDetNum(cfg->comboRadius),
+							WHITE);
+					}
+				}
+				//draw ground radius
+				DrawModel(
+					sprs->radius.plane,
+					fromDetVec2(it->pos, .01f),
+					fromDetNum(cfg->projRadius) * 2,
+					WHITE);
+			}
+		}
+		
+		//DRAW PARTICLES
+		//projectile collisions
 		for (auto it = particles->projs.cbegin(); it != particles->projs.cend(); it++)
 		{
 			float lifetime_in_secs = it->lifetime / 60.0f;
@@ -435,10 +505,7 @@ void gameScene(POV pov, const GameState* state, const SecSimParticles* particles
 				break;
 			}
 		}
-		for (auto it = particles->combos.cbegin(); it != particles->combos.cend(); it++)
-		{
-			//TODO
-		}
+		//grazes
 		for (auto it = particles->grazes.cbegin(); it != particles->grazes.cend(); it++)
 		{
 			float fadeAlpha = std::max(0.0f, 1.0f - it->lifetime / 60.0f);
@@ -464,6 +531,7 @@ void gameScene(POV pov, const GameState* state, const SecSimParticles* particles
 					fade);
 			}
 		}
+		//alerts
 		for (auto it = particles->alerts.cbegin(); it != particles->alerts.cend(); it++)
 		{
 			float fadeAlpha = std::max(0.0f, 1.0f - (it->lifetime * 1.0f) / 60.0f);
@@ -489,6 +557,7 @@ void gameScene(POV pov, const GameState* state, const SecSimParticles* particles
 					fade);
 			}
 		}
+		//hitscan trails
 		for (auto it = particles->hitscans.cbegin(); it != particles->hitscans.cend(); it++)
 		{
 			float angle = RAD2DEG * angleFromDetVec2(it->dir);
@@ -533,15 +602,29 @@ void gameScene(POV pov, const GameState* state, const SecSimParticles* particles
 				break;
 			}
 		}
-
-		EndShaderMode();
-		DrawCylinderWires(
-			Vector3{ 0.0f, 0.0f, 0.0f },
-			fromDetNum(cfg->arenaRadius + cfg->playerRadius),
-			fromDetNum(cfg->arenaRadius),
-			-.5f, 50, BLACK);
-		DrawGrid(10, static_cast<float>(cfg->arenaRadius) / 10.0f);
+		//combos
+		for (auto it = particles->combos.cbegin(); it != particles->combos.cend(); it++)
+		{
+			float filter = 1.0f;
+			float pos[2] = { fromDetNum(it->pos.x), fromDetNum(it->pos.y) };
+			float fade = it->lifetime / 30.0f;
+			SetShaderValue(sprs->combo.shader, sprs->combo.filter, &filter, SHADER_UNIFORM_FLOAT);
+			SetShaderValue(sprs->combo.shader, sprs->combo.pos, pos, SHADER_UNIFORM_VEC2);
+			SetShaderValue(sprs->combo.shader, sprs->combo.fade, &fade, SHADER_UNIFORM_FLOAT);
+			DrawModel(sprs->combo.model,
+				fromDetVec2(it->pos, fromDetNum(cfg->playerRadius) * 2),
+				fromDetNum(cfg->comboRadius),
+				WHITE);
+			SetShaderValue(sprs->combo.invert.shader, sprs->combo.invert.filter, &filter, SHADER_UNIFORM_FLOAT);
+			SetShaderValue(sprs->combo.invert.shader, sprs->combo.invert.pos, pos, SHADER_UNIFORM_VEC2);
+			SetShaderValue(sprs->combo.invert.shader, sprs->combo.invert.fade, &fade, SHADER_UNIFORM_FLOAT);
+			DrawModel(sprs->combo.invert.model,
+				fromDetVec2(it->pos, fromDetNum(cfg->playerRadius) * 2),
+				fromDetNum(cfg->comboRadius),
+				WHITE);
+		}
 	}
+	EndShaderMode();
 	EndMode3D();
 }
 
@@ -554,7 +637,7 @@ double present(POV pov, const GameState* state, const SecSimParticles* particles
 	
 	BeginDrawing();
 
-	ClearBackground(RAYWHITE);
+	ClearBackground(Color{ 128,224,255,255 });
 
 	gameScene(pov, state, particles, cfg, cam, sprs);
 
@@ -677,10 +760,8 @@ void presentMenu(POV pov, const GameState* state, const SecSimParticles* particl
 
 	BeginDrawing();
 
-	ClearBackground(RAYWHITE);
-
 	BeginTextureMode(home->bgTarget);
-	ClearBackground(RAYWHITE);
+	ClearBackground(Color{ 128,224,255,255 });
 	gameScene(pov, state, particles, cfg, cam, sprs);
 	EndTextureMode();
 

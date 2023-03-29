@@ -170,11 +170,23 @@
     <None Include="shader\bill.fs">
       <DeploymentContent>true</DeploymentContent>
     </None>
+    <None Include="shader\combo.fs">
+      <DeploymentContent>true</DeploymentContent>
+    </None>
+    <None Include="shader\combo.vs">
+      <DeploymentContent>true</DeploymentContent>
+    </None>
+    <None Include="shader\combo_invert.vs">
+      <DeploymentContent>true</DeploymentContent>
+    </None>
     <None Include="shader\path.fs">
       <DeploymentContent>true</DeploymentContent>
     </None>
   </ItemGroup>
   <ItemGroup>
+    <Image Include="sprite\arena.png">
+      <DeploymentContent>true</DeploymentContent>
+    </Image>
     <Image Include="sprite\charge.png">
       <DeploymentContent>true</DeploymentContent>
     </Image>
