@@ -3,6 +3,11 @@
 
 #include "Input.hpp"
 
+//since GGPO as-is does not make transparent which is the earliest confirm frame saved
+//here's a hardcoded window size from the latest confirm frame backwards
+//as 15f = 250ms, you'll be fine even at a ping of 500ms
+const int REPLAY_ROLLBACK_WINDOW = 15;
+
 struct ReplayWriter
 {
 	long confirmFrame;
@@ -46,7 +51,7 @@ void writeReplayInput(ReplayWriter* replay, InputData input, long frame)
 
 void consumeReplayInput(ReplayWriter* replay, long confFrame)
 {
-	while (replay->confirmFrame < (confFrame-15))
+	while (replay->confirmFrame < (confFrame-REPLAY_ROLLBACK_WINDOW))
 	{
 		InputData input = replay->inputBuffer.front();
 		char zipHeaders[2] = { 0 };

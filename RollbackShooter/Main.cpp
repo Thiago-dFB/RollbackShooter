@@ -8,6 +8,7 @@
 #include "Input.hpp"
 #include "Replay.hpp"
 #include "Player.hpp"
+#include "SecondarySim.hpp"
 #include "GameState.hpp"
 #include "Presentation.hpp"
 #include "GGPOController.hpp"
@@ -29,10 +30,12 @@ int main(int argc, char* argv[])
 
 	Config demoCfg;
 	GameState demoState;
+	SecSimFlux demoFlux;
+	SecSimParticles demoParticles;
 	ReplayReader replayR;
 
 	std::string newDemo = homeFile["HomeScreen"]["demoFiles"][GetRandomValue(0, demos-1)].value_or("demo.rbst");
-	openReplayFile(&replayR, &demoCfg, "demo.rbst");
+	openReplayFile(&replayR, &demoCfg, newDemo.c_str());
 	if (!replayR.fileStream.is_open())
 	{
 		//a little fallback
@@ -103,14 +106,27 @@ int main(int argc, char* argv[])
 		if (replayFileEnd(&replayR))
 		{
 			closeReplayFile(&replayR);
+			demoParticles.projs.clear();
+			demoParticles.combos.clear();
+			demoParticles.grazes.clear();
+			demoParticles.alerts.clear();
+			demoParticles.hitscans.clear();
 			//repeat
-			openReplayFile(&replayR, &demoCfg, "demo.rbst");
+			openReplayFile(&replayR, &demoCfg, newDemo.c_str());
 			demoState = initialState(&demoCfg);
 		}
 		InputData input = readReplayFile(&replayR);
 		//simulation
-		demoState = simulate(demoState, &demoCfg, input);
+		demoState = simulate(demoState, &demoFlux, &demoCfg, input);
 		//secondary simulation
+		increaseParticleLifetime(&demoParticles);
+		currentFrameSecSim(&demoFlux, &demoParticles, demoState.frame);
+		demoFlux.projs.clear();
+		demoFlux.combos.clear();
+		demoFlux.grazes.clear();
+		demoFlux.alerts.clear();
+		demoFlux.hitscans.clear();
+
 		int currentFps = GetFPS();
 		demoOSS.str("");
 		demoOSS << "FPS: " << currentFps << std::endl;
@@ -127,7 +143,7 @@ int main(int argc, char* argv[])
 		}
 		if (cleanMode) demoOSS.str("");
 		//presentation
-		presentMenu(demoPOV, &demoState, &demoCfg, &demoCam, &sprs, &demoOSS, &home);
+		presentMenu(demoPOV, &demoState, &demoParticles, &demoCfg, &demoCam, &sprs, &demoOSS, &home);
 	}
 	UnloadRenderTexture(home.bgTarget);
 	UnloadShader(home.bgShader);

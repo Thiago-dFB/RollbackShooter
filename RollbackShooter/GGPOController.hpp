@@ -82,16 +82,20 @@ typedef struct tagBITMAPINFOHEADER {
 #ifndef RBST_GGPO_HPP
 #define RBST_GGPO_HPP
 
+#include <iostream>
 //GGPO
 #include <ggponet.h>
 //-----
 #include "Config.hpp"
 #include "Input.hpp"
 #include "Replay.hpp"
+#include "SecondarySim.hpp"
 #include "GameState.hpp"
 #include "Presentation.hpp"
 
 GameState ggState;
+SecSimFluxHistory ggFlux;
+SecSimParticles ggParticles;
 Config ggCfg;
 GGPOSession* ggpo = NULL;
 GGPOPlayerHandle ggHandle1, ggHandle2, localHandle;
@@ -99,6 +103,8 @@ bool connected = false;
 int framesAheadPenalty = -1;
 std::string connectionString = "";
 long confirmFrame = 0;
+long currentFrame = 0;
+long restoredFrame = 0;
 int rollbackFrames = 0;
 int rollbackWorst = 0;
 ReplayWriter* replayW = NULL;
@@ -144,15 +150,20 @@ bool __cdecl rbst_advance_frame_callback(int)
     InputData input { p1,p2 };
     overwriteReplayInput(replayW, input, ggState.frame);
     //simulate one step
-    ggState = simulate(ggState, &ggCfg, input);
+    SecSimFlux flux;
+    ggState = simulate(ggState, &flux, &ggCfg, input);
+    ggFlux.insert(std::pair<long, SecSimFlux>(ggState.frame, flux));
     //this wasn't on vector war but GGPO does expect me to advance frames in this callback or it will fail some assertion
     ggpo_advance_frame(ggpo);
     rollbackFrames++;
+
+    //to avoid losing info when two rollbacks happen within a frame, do this here
+    if (ggState.frame == currentFrame) rollbackSecSim(&ggFlux, &ggParticles, restoredFrame);
     
     return true;
 }
 
-//the 3 following callbacks are largely the same as the example
+//the 3 following callbacks are largely the same as GGPO's example game vector war
 //C memory management scares the ever living shit out of me so I'm gonna trust it
 //I could just assign active state to confirm state and vice versa but GGPO stores the confirm state within the session
 //that's for midgame join I guess? still looking at what GGPO can do
@@ -161,6 +172,7 @@ bool __cdecl rbst_load_game_state_callback(unsigned char* buffer, int len)
 {
     memcpy(&ggState, buffer, len);
     rollbackFrames = 0;
+    restoredFrame = ggState.frame;
     return true;
 }
 
@@ -346,12 +358,19 @@ void NetworkedMain(const Sprites* sprs, std::string remoteAddress, unsigned shor
             ggRes = ggpo_synchronize_input(ggpo, (void*)zips, sizeof(PlayerInputZip) * 2, &disconnect_flags);
             if (GGPO_SUCCEEDED(ggRes))
             {
-                
                 PlayerInput p1 = unzipInput(zips[0]);
                 PlayerInput p2 = unzipInput(zips[1]);
                 InputData input{ p1,p2 };
                 writeReplayInput(&replay, input, ggState.frame);
-                ggState = simulate(ggState, &ggCfg, input);
+                //primary simulation
+                SecSimFlux flux;
+                ggState = simulate(ggState, &flux, &ggCfg, input);
+                //secondary simulation
+                increaseParticleLifetime(&ggParticles);
+                currentFrameSecSim(&flux, &ggParticles, ggState.frame);
+                currentFrame = ggState.frame;
+                ggFlux.insert(std::pair<long, SecSimFlux>(ggState.frame, flux));
+                ggFlux.erase(currentFrame - 15);
                 //Notify GGPO that a frame has passed;
                 ggpo_advance_frame(ggpo);
             }
@@ -374,7 +393,7 @@ void NetworkedMain(const Sprites* sprs, std::string remoteAddress, unsigned shor
         else gameInfoOSS << "[F4 for diagnostics]" << std::endl;
         gameInfoOSS << connectionString;
 
-        semaphoreIdleTime = present(pov, &ggState, &ggCfg, &cam, sprs, &gameInfoOSS);
+        semaphoreIdleTime = present(pov, &ggState, &ggParticles, &ggCfg, &cam, sprs, &gameInfoOSS);
     }
     //exit session
     if (ggpo)
@@ -386,8 +405,17 @@ void NetworkedMain(const Sprites* sprs, std::string remoteAddress, unsigned shor
     connectionString = "";
     framesAheadPenalty = -1;
     confirmFrame = 0;
+    restoredFrame = 0;
+    currentFrame = 0;
     rollbackFrames = 0;
     rollbackWorst = 0;
+
+    ggFlux.clear();
+    ggParticles.projs.clear();
+    ggParticles.combos.clear();
+    ggParticles.grazes.clear();
+    ggParticles.alerts.clear();
+    ggParticles.hitscans.clear();
 
     closeReplayFile(&replay);
     replayW = NULL;

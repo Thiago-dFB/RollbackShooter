@@ -5,6 +5,7 @@
 #include <raylib.h>
 //-----
 #include "Math.hpp"
+#include "SecondarySim.hpp"
 #include "GameState.hpp"
 
 const int screenWidth = 1280;
@@ -19,6 +20,7 @@ struct Sprites
 	Texture2D charsFlipped;
 	Texture2D projs;
 	Texture2D hearts;
+	Texture2D effects;
 	Shader billShader;
 	struct {
 		Model plane;
@@ -85,6 +87,7 @@ Sprites LoadSprites()
 	UnloadImage(atlas);
 	sprs.projs = LoadTexture("sprite/projs.png");
 	sprs.hearts = LoadTexture("sprite/hearts.png");
+	sprs.effects = LoadTexture("sprite/effects.png");
 	sprs.billShader = LoadShader(0, "shader/bill.fs");
 
 	sprs.radius.texture = LoadTexture("sprite/radius.png");
@@ -115,6 +118,7 @@ void UnloadSprites(Sprites sprs)
 	UnloadTexture(sprs.charsFlipped);
 	UnloadTexture(sprs.projs);
 	UnloadTexture(sprs.hearts);
+	UnloadTexture(sprs.effects);
 	UnloadShader(sprs.billShader);
 	UnloadTexture(sprs.radius.texture);
 	UnloadModel(sprs.radius.plane);
@@ -205,7 +209,7 @@ void drawBars(const Player* player, const Config* cfg)
 	}
 }
 
-void gameScene(POV pov, const GameState* state, const Config* cfg, const Camera3D* cam, const Sprites* sprs)
+void gameScene(POV pov, const GameState* state, const SecSimParticles* particles, const Config* cfg, const Camera3D* cam, const Sprites* sprs)
 {
 	BeginMode3D(*cam);
 	{
@@ -353,7 +357,7 @@ void gameScene(POV pov, const GameState* state, const Config* cfg, const Camera3
 				DrawBillboardPro(*cam,
 					sprs->projs,
 					Rectangle{ 0,0,32,32 }, //source rect
-					fromDetVec2(it->pos, 1.0f), //world pos
+					fromDetVec2(it->pos, fromDetNum(cfg->playerRadius)*2), //world pos
 					Vector3{ 0.0f,1.0f,0.0f }, //up vector
 					Vector2{ fromDetNum(cfg->projRadius) * 4, fromDetNum(cfg->projRadius) * 4 }, //size (proj size is defined by circle with half dimensions of sprite)
 					Vector2{ 0.0f, 0.0f }, //anchor for rotation and scaling
@@ -364,7 +368,7 @@ void gameScene(POV pov, const GameState* state, const Config* cfg, const Camera3
 				DrawBillboardPro(*cam,
 					sprs->projs,
 					Rectangle{ 32,0,32,32 }, //source rect
-					fromDetVec2(it->pos, 1.0f), //world pos
+					fromDetVec2(it->pos, fromDetNum(cfg->playerRadius) * 2), //world pos
 					Vector3{ 0.0f,1.0f,0.0f }, //up vector
 					Vector2{ fromDetNum(cfg->projRadius) * 4, fromDetNum(cfg->projRadius) * 4 }, //size (proj size is defined by circle with half dimensions of sprite)
 					Vector2{ 0.0f, 0.0f }, //anchor for rotation and scaling
@@ -378,7 +382,7 @@ void gameScene(POV pov, const GameState* state, const Config* cfg, const Camera3
 				DrawBillboardPro(*cam,
 					sprs->projs,
 					Rectangle{ 64,0,32,32 }, //source rect
-					fromDetVec2(futurePos, 1.0f), //world pos
+					fromDetVec2(futurePos, fromDetNum(cfg->playerRadius) * 2), //world pos
 					Vector3{ 0.0f,1.0f,0.0f }, //up vector
 					Vector2{ fromDetNum(cfg->projRadius) * 2, fromDetNum(cfg->projRadius) * 2 }, //size
 					Vector2{ 0.0f, 0.0f }, //anchor for rotation and scaling
@@ -400,6 +404,136 @@ void gameScene(POV pov, const GameState* state, const Config* cfg, const Camera3
 				fromDetNum(cfg->projRadius) * 2,
 				WHITE);
 		}
+		//draw particles
+		for (auto it = particles->projs.cbegin(); it != particles->projs.cend(); it++)
+		{
+			float lifetime_in_secs = it->lifetime / 60.0f;
+			float size = std::max(0.0f, -12 * lifetime_in_secs * lifetime_in_secs + 4 * lifetime_in_secs + 1) * fromDetNum(cfg->projRadius) * 4;
+			switch (it->owner)
+			{
+			case 1:
+				DrawBillboardPro(*cam,
+					sprs->projs,
+					Rectangle{ 0,0,32,32 }, //source rect
+					fromDetVec2(it->pos, fromDetNum(cfg->playerRadius) * 2), //world pos
+					Vector3{ 0.0f,1.0f,0.0f }, //up vector
+					Vector2{ size, size }, //size (proj size is defined by circle with half dimensions of sprite)
+					Vector2{ 0.0f, 0.0f }, //anchor for rotation and scaling
+					24 * it->lifetime, //rotation (degrees per frame)
+					WHITE);
+				break;
+			case 2:
+				DrawBillboardPro(*cam,
+					sprs->projs,
+					Rectangle{ 32,0,32,32 }, //source rect
+					fromDetVec2(it->pos, fromDetNum(cfg->playerRadius) * 2), //world pos
+					Vector3{ 0.0f,1.0f,0.0f }, //up vector
+					Vector2{ size, size }, //size (proj size is defined by circle with half dimensions of sprite)
+					Vector2{ 0.0f, 0.0f }, //anchor for rotation and scaling
+					24 * it->lifetime, //rotation (degrees per frame)
+					WHITE);
+				break;
+			}
+		}
+		for (auto it = particles->combos.cbegin(); it != particles->combos.cend(); it++)
+		{
+			//TODO
+		}
+		for (auto it = particles->grazes.cbegin(); it != particles->grazes.cend(); it++)
+		{
+			float fadeAlpha = std::max(0.0f, 1.0f - it->lifetime / 60.0f);
+			Color fade{255,255,255,255.0*fadeAlpha};
+			for (auto subIt = it->subParts.cbegin(); subIt != it->subParts.cend(); subIt++)
+			{
+				float size = subIt->w * fromDetNum(cfg->projRadius) * 2;
+				float x = std::min(it->lifetime / 60.0f, 1.0f);
+				float leap = -x*x + 2*x;
+				Vector3 pos{
+					fromDetNum(it->pos.x) + subIt->x * leap,
+					subIt->z * fromDetNum(cfg->playerRadius) * 2,
+					fromDetNum(it->pos.y) + subIt->y * leap
+				};
+				DrawBillboardPro(*cam,
+					sprs->effects,
+					Rectangle{ 0,0,8,8 }, //source rect
+					pos, //world pos
+					Vector3{ 0.0f,1.0f,0.0f }, //up vector
+					Vector2{ size, size }, //size (proj size is defined by circle with half dimensions of sprite)
+					Vector2{ 0.0f, 0.0f }, //anchor for rotation and scaling
+					0.0f, //rotation (degrees per frame)
+					fade);
+			}
+		}
+		for (auto it = particles->alerts.cbegin(); it != particles->alerts.cend(); it++)
+		{
+			float fadeAlpha = std::max(0.0f, 1.0f - (it->lifetime * 1.0f) / 60.0f);
+			Color fade{ 255,255,255,255.0 * fadeAlpha };
+			for (auto subIt = it->subParts.cbegin(); subIt != it->subParts.cend(); subIt++)
+			{
+				float size = subIt->w * fromDetNum(cfg->projRadius) * 2;
+				float x = std::min(it->lifetime / 60.0f, 1.0f);
+				float leap = 2*(-x * x + 2 * x);
+				Vector3 pos{
+					fromDetNum(it->pos.x) + subIt->x * leap,
+					subIt->z * fromDetNum(cfg->playerRadius) * 2,
+					fromDetNum(it->pos.y) + subIt->y * leap
+				};
+				DrawBillboardPro(*cam,
+					sprs->effects,
+					Rectangle{ 8,0,8,8 }, //source rect
+					pos, //world pos
+					Vector3{ 0.0f,1.0f,0.0f }, //up vector
+					Vector2{ size, size }, //size (proj size is defined by circle with half dimensions of sprite)
+					Vector2{ 0.0f, 0.0f }, //anchor for rotation and scaling
+					0.0f, //rotation (degrees per frame)
+					fade);
+			}
+		}
+		for (auto it = particles->hitscans.cbegin(); it != particles->hitscans.cend(); it++)
+		{
+			float angle = RAD2DEG * angleFromDetVec2(it->dir);
+			float lifetime_in_secs = it->lifetime / 60.0f;
+			float size = std::max(0.0f, -12 * lifetime_in_secs * lifetime_in_secs + 4 * lifetime_in_secs + 1) * fromDetNum(cfg->projRadius) * 3;
+			Color fade{ 255,255,255,std::min(255.0f, 255.0f * size) };
+			switch (it->owner)
+			{
+			case 1:
+				DrawModelEx(sprs->path.hitscanRed.path,
+					fromDetVec2(it->pos, fromDetNum(cfg->playerRadius) * 2),
+					Vector3{ 0,-1,0 },
+					angle,
+					Vector3{ 1,1,.15 },
+					fade);
+				DrawBillboardPro(*cam,
+					sprs->projs,
+					Rectangle{ 0,0,32,32 }, //source rect
+					fromDetVec2(it->pos, fromDetNum(cfg->playerRadius) * 2), //world pos
+					Vector3{ 0.0f,1.0f,0.0f }, //up vector
+					Vector2{ size, size }, //size (proj size is defined by circle with half dimensions of sprite)
+					Vector2{ 0.0f, 0.0f }, //anchor for rotation and scaling
+					6 * it->lifetime, //rotation (degrees per frame)
+					WHITE);
+				break;
+			case 2:
+				DrawModelEx(sprs->path.hitscanBlue.path,
+					fromDetVec2(it->pos, fromDetNum(cfg->playerRadius) * 2),
+					Vector3{ 0,-1,0 },
+					angle,
+					Vector3{ 1,1,.15 },
+					fade);
+				DrawBillboardPro(*cam,
+					sprs->projs,
+					Rectangle{ 32,0,32,32 }, //source rect
+					fromDetVec2(it->pos, fromDetNum(cfg->playerRadius) * 2), //world pos
+					Vector3{ 0.0f,1.0f,0.0f }, //up vector
+					Vector2{ size, size }, //size (proj size is defined by circle with half dimensions of sprite)
+					Vector2{ 0.0f, 0.0f }, //anchor for rotation and scaling
+					12 * it->lifetime, //rotation (degrees per frame)
+					WHITE);
+				break;
+			}
+		}
+
 		EndShaderMode();
 		DrawCylinderWires(
 			Vector3{ 0.0f, 0.0f, 0.0f },
@@ -414,7 +548,7 @@ void gameScene(POV pov, const GameState* state, const Config* cfg, const Camera3
 //MATCH PRESENTATION
 
 //returns semaphore idle time
-double present(POV pov, const GameState* state, const Config* cfg, Camera3D* cam, const Sprites* sprs, std::ostringstream* gameInfoOSS)
+double present(POV pov, const GameState* state, const SecSimParticles* particles, const Config* cfg, Camera3D* cam, const Sprites* sprs, std::ostringstream* gameInfoOSS)
 {
 	setCamera(cam, NULL, state, pov);
 	
@@ -422,7 +556,7 @@ double present(POV pov, const GameState* state, const Config* cfg, Camera3D* cam
 
 	ClearBackground(RAYWHITE);
 
-	gameScene(pov, state, cfg, cam, sprs);
+	gameScene(pov, state, particles, cfg, cam, sprs);
 
 	float size = 6;
 	for (int i = 0; i < state->health1; i++)
@@ -537,7 +671,7 @@ struct HomeInfo
 	Shader bgShader;
 };
 
-void presentMenu(POV pov, const GameState* state, const Config* cfg, Camera3D* cam, const Sprites* sprs, std::ostringstream* gameInfoOSS, HomeInfo* home)
+void presentMenu(POV pov, const GameState* state, const SecSimParticles* particles, const Config* cfg, Camera3D* cam, const Sprites* sprs, std::ostringstream* gameInfoOSS, HomeInfo* home)
 {
 	setCamera(cam, &home->lazyCam, state, pov);
 
@@ -547,7 +681,7 @@ void presentMenu(POV pov, const GameState* state, const Config* cfg, Camera3D* c
 
 	BeginTextureMode(home->bgTarget);
 	ClearBackground(RAYWHITE);
-	gameScene(pov, state, cfg, cam, sprs);
+	gameScene(pov, state, particles, cfg, cam, sprs);
 	EndTextureMode();
 
 	if (home->homeScreen)

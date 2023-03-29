@@ -50,6 +50,9 @@
     <ClInclude Include="Replay.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="SecondarySim.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="RBST_config.toml">
@@ -94,6 +97,9 @@
       <Filter>Resource Files\sprite</Filter>
     </Image>
     <Image Include="sprite\railBlue.png">
+      <Filter>Resource Files\sprite</Filter>
+    </Image>
+    <Image Include="sprite\effects.png">
       <Filter>Resource Files\sprite</Filter>
     </Image>
   </ItemGroup>

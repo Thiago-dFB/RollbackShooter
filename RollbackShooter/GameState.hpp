@@ -8,6 +8,7 @@
 #include "Config.hpp"
 #include "Input.hpp"
 #include "Player.hpp"
+#include "SecondarySim.hpp"
 
 const size_t MAX_PROJECTILES = 16;
 
@@ -79,14 +80,14 @@ void regDamage(GameState* state, playerid damaged)
 	}
 }
 
-void altShot(GameState* state, const Config* cfg, Vec2 origin, Vec2 direction, playerid owner);
+void altShot(GameState* state, SecSimFlux* flux, const Config* cfg, Vec2 origin, Vec2 direction, playerid owner);
 
-void damagePlayer(Player* player, GameState* state, const Config* cfg, Vec2 origin, int8 force)
+void damagePlayer(Player* player, SecSimFlux* flux, GameState* state, const Config* cfg, Vec2 origin, int8 force)
 {
 	if (player->pushdown.top() == PState::Charging && player->chargeCount >= cfg->chargeDuration)
 	{
 		player->pushdown.pop();
-		altShot(state, cfg, player->pos, player->dir, player->id);
+		altShot(state, flux, cfg, player->pos, player->dir, player->id);
 	}
 	//CANCEL CURRENT ACTION
 	if (player->pushdown.top() == PState::Dashing || player->pushdown.top() == PState::Charging)
@@ -112,10 +113,11 @@ void damagePlayer(Player* player, GameState* state, const Config* cfg, Vec2 orig
 	}
 }
 
-void altShot(GameState* state, const Config* cfg, Vec2 origin, Vec2 direction, playerid owner)
+void altShot(GameState* state, SecSimFlux* flux, const Config* cfg, Vec2 origin, Vec2 direction, playerid owner)
 {
 	Player* opposition;
 	if (owner == 1)	opposition = &(state->p2); else opposition = &(state->p1);
+	flux->hitscans.push_back({ false, origin, direction, owner });
 	//PARRY
 	if (opposition->pushdown.top() == PState::Dashing &&
 		opposition->dashCount < cfg->dashPerfect)
@@ -130,6 +132,8 @@ void altShot(GameState* state, const Config* cfg, Vec2 origin, Vec2 direction, p
 			opposition->pushdown.push(PState::Hitstop);
 			opposition->hitstopCount = cfg->midHitstop;
 			if (owner == 1)	opposition = &(state->p2); else opposition = &(state->p1);
+			//add another hitscan juuuust a bit to the side
+			flux->hitscans.push_back({ false, v2::add(origin, v2::scalarMult(v2::rotate(direction, origin.x.half_pi()), num_det{0.01f})), direction, owner});
 		}
 	}
 	//DIRECT HIT OR GRAZE
@@ -138,13 +142,14 @@ void altShot(GameState* state, const Config* cfg, Vec2 origin, Vec2 direction, p
 	{
 		if (dotDist.y < cfg->playerRadius)
 		{
-			damagePlayer(opposition, state, cfg, origin, 2);
+			damagePlayer(opposition, flux, state, cfg, origin, 2);
 			if (owner == 1)	regDamage(state, 2); else regDamage(state, 1);
 		}
 		else if (dotDist.y < cfg->grazeRadius)
 		{
 			opposition->ammo = cfg->ammoMax;
 			opposition->stamina = cfg->staminaMax;
+			flux->grazes.push_back({ false, opposition->pos });
 		}
 	}
 
@@ -157,14 +162,15 @@ void altShot(GameState* state, const Config* cfg, Vec2 origin, Vec2 direction, p
 		{
 			if (!state->p1.stunned && v2::length(v2::sub(it->pos, state->p1.pos)) < (cfg->comboRadius + cfg->playerRadius))
 			{
-				damagePlayer(&(state->p1), state, cfg, it->pos, 3);
+				damagePlayer(&(state->p1), flux, state, cfg, it->pos, 3);
 				regDamage(state, 1);
 			}
 			if (!state->p2.stunned && v2::length(v2::sub(it->pos, state->p2.pos)) < (cfg->comboRadius + cfg->playerRadius))
 			{
-				damagePlayer(&(state->p2), state, cfg, it->pos, 3);
+				damagePlayer(&(state->p2), flux, state, cfg, it->pos, 3);
 				regDamage(state, 2);
 			}
+			flux->combos.push_back({ false,it->pos });
 			state->projs.erase(it);
 		}
 		else
@@ -199,7 +205,7 @@ Vec2 pickDashDir(Vec2 front, MoveInput mov)
 	}
 }
 
-GameState simulate(GameState state, const Config* cfg, InputData input)
+GameState simulate(GameState state, SecSimFlux* flux, const Config* cfg, InputData input)
 {
 	state.frame++;
 	state.roundCountdown--;
@@ -295,6 +301,7 @@ GameState simulate(GameState state, const Config* cfg, InputData input)
 			it->lifetime++;
 			if (v2::length(it->pos) > cfg->arenaRadius)
 			{
+				flux->projs.push_back({ false,it->pos,it->owner });
 				state.projs.erase(it);
 				erased = true;
 			}
@@ -316,8 +323,10 @@ GameState simulate(GameState state, const Config* cfg, InputData input)
 					}
 					else if (!state.p2.stunned && v2::length(v2::sub(it->pos, state.p2.pos)) < (cfg->playerRadius + cfg->projRadius))
 					{
-						damagePlayer(&(state.p2), &state, cfg, it->pos, 1);
+						//TODO make dash invulnerable to projectiles with less lifetime than it
+						damagePlayer(&(state.p2), flux, &state, cfg, it->pos, 1);
 						regDamage(&state, 2);
+						flux->projs.push_back({ false,it->pos,it->owner });
 						state.projs.erase(it);
 						erased = true;
 					}
@@ -336,8 +345,10 @@ GameState simulate(GameState state, const Config* cfg, InputData input)
 					}
 					else if (!state.p1.stunned && v2::length(v2::sub(it->pos, state.p1.pos)) < (cfg->playerRadius + cfg->projRadius))
 					{
-						damagePlayer(&(state.p1), &state, cfg, it->pos, 1);
+						//TODO make dash invulnerable to projectiles with less lifetime than it
+						damagePlayer(&(state.p1), flux, &state, cfg, it->pos, 1);
 						regDamage(&state, 1);
+						flux->projs.push_back({ false,it->pos,it->owner });
 						state.projs.erase(it);
 						erased = true;
 					}
@@ -357,30 +368,30 @@ GameState simulate(GameState state, const Config* cfg, InputData input)
 				int dashDiff = state.p1.dashCount - state.p2.dashCount;
 				if (dashDiff > 0)
 				{
-					damagePlayer(&(state.p2), &state, cfg, state.p1.pos, 2);
+					damagePlayer(&(state.p2), flux, &state, cfg, state.p1.pos, 2);
 					regDamage(&state, 2);
 					state.p1.pushdown.push(PState::Hitstop);
 					state.p1.hitstopCount = cfg->midHitstop;
 				}
 				else if (dashDiff < 0)
 				{
-					damagePlayer(&(state.p1), &state, cfg, state.p2.pos, 2);
+					damagePlayer(&(state.p1), flux, &state, cfg, state.p2.pos, 2);
 					regDamage(&state, 1);
 					state.p2.pushdown.push(PState::Hitstop);
 					state.p2.hitstopCount = cfg->midHitstop;
 				}
 				else
 				{
-					damagePlayer(&(state.p1), &state, cfg, state.p2.pos, 2);
+					damagePlayer(&(state.p1), flux, &state, cfg, state.p2.pos, 2);
 					regDamage(&state, 1);
-					damagePlayer(&(state.p2), &state, cfg, state.p1.pos, 2);
+					damagePlayer(&(state.p2), flux, &state, cfg, state.p1.pos, 2);
 					regDamage(&state, 2);
 				}
 			}
 			//P2 PERFECT EVADES
 			else if (state.p2.dashCount < cfg->dashPerfect && (v2::length(v2::sub(state.p1.pos, state.p2.perfectPos))) < (cfg->playerRadius + cfg->playerRadius))
 			{
-				damagePlayer(&(state.p1), &state, cfg, state.p2.perfectPos, 2);
+				damagePlayer(&(state.p1), flux, &state, cfg, state.p2.perfectPos, 2);
 				regDamage(&state, 1);
 				state.p2.pushdown.push(PState::Hitstop);
 				state.p2.hitstopCount = cfg->midHitstop;
@@ -388,7 +399,7 @@ GameState simulate(GameState state, const Config* cfg, InputData input)
 			//P1 PERFECT EVADES
 			else if (state.p1.dashCount < cfg->dashPerfect && (v2::length(v2::sub(state.p2.pos, state.p1.perfectPos))) < (cfg->playerRadius + cfg->playerRadius))
 			{
-				damagePlayer(&(state.p2), &state, cfg, state.p1.perfectPos, 2);
+				damagePlayer(&(state.p2), flux, &state, cfg, state.p1.perfectPos, 2);
 				regDamage(&state, 2);
 				state.p1.pushdown.push(PState::Hitstop);
 				state.p1.hitstopCount = cfg->midHitstop;
@@ -397,7 +408,7 @@ GameState simulate(GameState state, const Config* cfg, InputData input)
 		//P1 HITS P2
 		else if (directColl && !state.p2.stunned && state.p1.pushdown.top() == PState::Dashing)
 		{
-			damagePlayer(&(state.p2), &state, cfg, state.p1.pos, 2);
+			damagePlayer(&(state.p2), flux, &state, cfg, state.p1.pos, 2);
 			regDamage(&state, 2);
 			state.p1.pushdown.push(PState::Hitstop);
 			state.p1.hitstopCount = cfg->midHitstop;
@@ -405,7 +416,7 @@ GameState simulate(GameState state, const Config* cfg, InputData input)
 		//P2 HITS P1
 		else if (directColl && !state.p1.stunned && state.p2.pushdown.top() == PState::Dashing)
 		{
-			damagePlayer(&(state.p1), &state, cfg, state.p2.pos, 2);
+			damagePlayer(&(state.p1), flux, &state, cfg, state.p2.pos, 2);
 			regDamage(&state, 1);
 			state.p2.pushdown.push(PState::Hitstop);
 			state.p2.hitstopCount = cfg->midHitstop;
@@ -415,12 +426,12 @@ GameState simulate(GameState state, const Config* cfg, InputData input)
 		if (state.p1.pushdown.top() == PState::Charging && state.p1.chargeCount >= cfg->chargeDuration)
 		{
 			state.p1.pushdown.pop();
-			altShot(&state, cfg, state.p1.pos, state.p1.dir, 1);
+			altShot(&state, flux, cfg, state.p1.pos, state.p1.dir, 1);
 		}
 		if (state.p2.pushdown.top() == PState::Charging && state.p2.chargeCount >= cfg->chargeDuration)
 		{
 			state.p2.pushdown.pop();
-			altShot(&state, cfg, state.p2.pos, state.p2.dir, 2);
+			altShot(&state, flux, cfg, state.p2.pos, state.p2.dir, 2);
 		}
 
 		state.p1.stunned = state.p1.stunned || state.p1DmgThisFrame;
@@ -429,12 +440,14 @@ GameState simulate(GameState state, const Config* cfg, InputData input)
 		//PLAYER 1 ATTACKS
 		if (state.p1.stunned)
 		{
+			//TODO turn alert into a dash that spends all your stamina
 			//break out of stun at the cost of a dash
 			if (input.p1Input.atk == AttackInput::Dash && !state.p1DmgThisFrame && state.p1.stamina >= cfg->dashCost)
 			{
 				state.p1.vel = v2::scalarMult(pickDashDir(state.p1.dir, input.p1Input.mov), cfg->playerDashSpeed);
 				state.p1.stamina = state.p1.stamina - cfg->dashCost;
 				state.p1.stunned = false;
+				flux->alerts.push_back({false, state.p1.pos});
 			}
 			//cancel your next move nevertheless
 			input.p1Input.atk = AttackInput::None;
@@ -478,12 +491,14 @@ GameState simulate(GameState state, const Config* cfg, InputData input)
 		//PLAYER 2 ATTACKS
 		if (state.p2.stunned)
 		{
+			//TODO turn alert into a dash that spends all your stamina
 			//break out of stun at the cost of a dash
 			if (input.p2Input.atk == AttackInput::Dash && !state.p2DmgThisFrame && state.p2.stamina >= cfg->dashCost)
 			{
 				state.p2.vel = v2::scalarMult(pickDashDir(state.p2.dir, input.p2Input.mov), cfg->playerDashSpeed);
 				state.p2.stamina = state.p2.stamina - cfg->dashCost;
 				state.p2.stunned = false;
+				flux->alerts.push_back({ false, state.p2.pos });
 			}
 			//cancel your next move nevertheless
 			input.p2Input.atk = AttackInput::None;

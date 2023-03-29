@@ -19,21 +19,30 @@ Player
 	Math
 	Config
 	Input
+SecondarySim
+	<array>
+	<map>
+	<vector>
+	<raylib.h>
+	Math
 GameState
 	<etl/vector.h>
 	Math
 	Config
 	Input
 	Player
+	SecondarySim
 Presentation
 	<raylib.h>
 	Math
+	SecondarySim
 	GameState
 GGPOController
 	<ggponet.h>
 	Config
 	Input
 	Replay
+	SecondarySim
 	GameState
 	Presentation
 
@@ -45,6 +54,7 @@ Main
     Input
     Replay
     Player
+	SecondarySim
     GameState
     Presentation
     GGPOController

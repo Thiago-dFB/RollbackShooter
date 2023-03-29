@@ -152,6 +152,7 @@
     <ClInclude Include="Player.hpp" />
     <ClInclude Include="Presentation.hpp" />
     <ClInclude Include="Replay.hpp" />
+    <ClInclude Include="SecondarySim.hpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="RBST_config.toml">
@@ -178,6 +179,9 @@
       <DeploymentContent>true</DeploymentContent>
     </Image>
     <Image Include="sprite\chars.png">
+      <DeploymentContent>true</DeploymentContent>
+    </Image>
+    <Image Include="sprite\effects.png">
       <DeploymentContent>true</DeploymentContent>
     </Image>
     <Image Include="sprite\hearts.png">
