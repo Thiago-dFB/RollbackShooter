@@ -40,9 +40,10 @@ struct Player
 	bool stunned = false;
 };
 
-void respawnPlayer(Player* player, const Config* cfg)
+void respawnPlayer(Player* player, const Config* cfg, playerid id)
 {
-	switch (player->id)
+	player->id = id;
+	switch (id)
 	{
 	case 1:
 		player->pos = v2::scalarMult(v2::left(), cfg->spawnRadius);

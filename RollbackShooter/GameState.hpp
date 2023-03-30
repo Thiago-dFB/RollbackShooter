@@ -53,15 +53,15 @@ GameState initialState(const Config* cfg)
 	state.roundCountdown = cfg->roundCountdown;
 	state.phase = RoundPhase::Countdown;
 
-	state.p1.id = 1;
-	respawnPlayer(&(state.p1), cfg);
+	respawnPlayer(&(state.p1), cfg, 1);
 	state.health1 = cfg->playerHealth;
 	state.rounds1 = 0;
+	state.p1DmgThisFrame = false;
 
-	state.p2.id = 2;
-	respawnPlayer(&(state.p2), cfg);
+	respawnPlayer(&(state.p2), cfg, 2);
 	state.health2 = cfg->playerHealth;
 	state.rounds2 = 0;
+	state.p2DmgThisFrame = false;
 
 	return state;
 }
@@ -225,9 +225,9 @@ GameState simulate(GameState state, SecSimFlux* flux, const Config* cfg, InputDa
 			{
 				state.roundCountdown = cfg->roundCountdown;
 				state.phase = RoundPhase::Countdown;
-				respawnPlayer(&(state.p1), cfg);
+				respawnPlayer(&(state.p1), cfg, state.p1.id);
 				state.health1 = cfg->playerHealth;
-				respawnPlayer(&(state.p2), cfg);
+				respawnPlayer(&(state.p2), cfg, state.p2.id);
 				state.health2 = cfg->playerHealth;
 				state.projs.clear();
 			}
