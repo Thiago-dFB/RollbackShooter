@@ -40,18 +40,6 @@ struct SecSimFlux
 
 using SecSimFluxHistory = std::map<long, SecSimFlux>;
 
-//Call this when a previous frame is restored to erase all flux from after it
-void resetFluxFrom(SecSimFluxHistory* fluxHist, long rollbackFrame)
-{
-	for (auto it = fluxHist->begin(); it != fluxHist->end(); it++)
-	{
-		if (it->first > rollbackFrame)
-			fluxHist->erase(it);
-		else
-			it++;
-	}
-}
-
 struct BasicParticle
 {
 	long frame; int lifetime; Vec2 pos;

@@ -152,6 +152,7 @@ bool __cdecl rbst_advance_frame_callback(int)
     //simulate one step
     SecSimFlux flux;
     ggState = simulate(ggState, &flux, &ggCfg, input);
+    ggFlux.erase(ggState.frame);
     ggFlux.insert(std::pair<long, SecSimFlux>(ggState.frame, flux));
     //this wasn't on vector war but GGPO does expect me to advance frames in this callback or it will fail some assertion
     ggpo_advance_frame(ggpo);
