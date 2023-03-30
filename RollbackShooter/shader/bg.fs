@@ -1,28 +1,45 @@
 #version 330
 
+// Input vertex attributes (from vertex shader)
 in vec2 fragTexCoord;
 
+// Output fragment color
 out vec4 fragColor;
 
+// Input uniform values
 uniform sampler2D texture0;
 
-// NOTE: Add here your custom variables
+//based on https://www.shadertoy.com/view/Xltfzj
+vec4 blur(sampler2D image, vec2 uv) {
+  float Pi = 6.28318530718; // Pi*2
+    
+  // GAUSSIAN BLUR SETTINGS {{{
+  float Directions = 16.0; // BLUR DIRECTIONS (Default 16.0 - More is better but slower)
+  float Quality = 4.0; // BLUR QUALITY (Default 4.0 - More is better but slower)
+  float Size = 5.0; // BLUR SIZE (Radius)
+  // GAUSSIAN BLUR SETTINGS }}}
+   
+  vec2 Radius = Size/vec2(1280.0,720.0);
+  
+  // Pixel colour
+  vec4 Color = texture(image, uv);
+  float iterations = 1.0;
+    
+  // Blur calculations
+  for(float d=0.0; d<Pi; d+=Pi/Directions)
+  {
+	  for(float i=1.0/Quality; i<=1.0; i+=1.0/Quality)
+    {
+		  Color += texture(image, uv + vec2(cos(d),sin(d))*Radius*i);
+      iterations += 1.0;
+    }
+  }
 
-//https://github.com/Jam3/glsl-fast-gaussian-blur/blob/master/13.glsl
-vec4 blur13(sampler2D image, vec2 uv, vec2 resolution, vec2 direction) {
-  vec4 color = vec4(0.0);
-  vec2 off1 = vec2(1.411764705882353) * direction;
-  vec2 off2 = vec2(3.2941176470588234) * direction;
-  vec2 off3 = vec2(5.176470588235294) * direction;
-  color += texture2D(image, uv) * 0.1964825501511404;
-  color += texture2D(image, uv + (off1 / resolution)) * 0.2969069646728344;
-  color += texture2D(image, uv - (off1 / resolution)) * 0.2969069646728344;
-  color += texture2D(image, uv + (off2 / resolution)) * 0.09447039785044732;
-  color += texture2D(image, uv - (off2 / resolution)) * 0.09447039785044732;
-  color += texture2D(image, uv + (off3 / resolution)) * 0.010381362401148057;
-  color += texture2D(image, uv - (off3 / resolution)) * 0.010381362401148057;
-  return color;
+  // Output to screen
+  Color /= iterations;
+  return Color;
 }
+  
 
 //based on https://www.shadertoy.com/view/Msf3WH
 vec2 hash( vec2 p ) // replace this by something better
@@ -64,7 +81,7 @@ vec4 getNoise(vec2 uv)
 
 void main()
 {
-    vec4 blurred = blur13(texture0, fragTexCoord, vec2(0.3), vec2(0.001));
+    vec4 blurred = blur(texture0, fragTexCoord);
     vec4 noised = getNoise(fragTexCoord);
     fragColor = blurred * noised;
 }

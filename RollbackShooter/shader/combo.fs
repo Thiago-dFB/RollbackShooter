@@ -1,11 +1,13 @@
 #version 330
 
+// Input vertex attributes (from vertex shader)
 in vec2 fragTexCoord;
 in vec3 fragPos;
 
+// Output fragment color
 out vec4 fragColor;
 
-// NOTE: Add here your custom variables
+// Custom uniforms
 uniform float filter;
 uniform vec2 pos;
 uniform float fade;
@@ -43,15 +45,14 @@ float getNoise(vec2 uv)
 	f += 0.2500*noise( uv ); uv = m*uv;
 	f += 0.1250*noise( uv ); uv = m*uv;
 	f += 0.0625*noise( uv ); uv = m*uv;
-  f = f * smoothstep( 0.0, 0.005, abs(p.x-0.6) );	
-  f = 0.2*f;
+  f = f * smoothstep( 0.0, 0.005, abs(p.x-0.6) );
   return f;
 }
 
 void main()
 {
     vec2 pseudoCoord = vec2(fragPos.x + fragPos.z + pos.x + pos.y, fragPos.y);
-    float noise = getNoise(pseudoCoord);
+    float noise = 0.2 * getNoise(pseudoCoord);
     //filter [0.0, 1.0] the lower the more hidden top and bottom are
     noise = noise + 20.0 * max(0.0, abs(fragPos.y) - filter);
     //fade = 0.0 -> [0.0, 0.2]

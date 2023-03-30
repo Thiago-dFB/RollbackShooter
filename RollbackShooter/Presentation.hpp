@@ -811,17 +811,20 @@ void presentMenu(POV pov, const GameState* state, const SecSimParticles* particl
 		DrawRectangleRec(p1Btn, LIGHTGRAY);
 		DrawRectangleLinesEx(p1Btn, 4, RED);
 		DrawText("Connect as Player 1", p1Btn.x + 10, p1Btn.y + 10, 20, BLACK);
-		DrawText("F1", p1Btn.x, p1Btn.y - 20, 20, BLACK);
+		DrawText("F1", p1Btn.x+1, p1Btn.y+1 - 20, 20, RED);
+		DrawText("F1", p1Btn.x, p1Btn.y - 20, 20, WHITE);
 
 		DrawRectangleRec(p2Btn, LIGHTGRAY);
 		DrawRectangleLinesEx(p2Btn, 4, BLUE);
 		DrawText("Connect as Player 2", p2Btn.x + 10, p2Btn.y + 10, 20, BLACK);
-		DrawText("F2", p2Btn.x, p2Btn.y - 20, 20, BLACK);
+		DrawText("F2", p2Btn.x+1, p2Btn.y+1 - 20, 20, BLUE);
+		DrawText("F2", p2Btn.x, p2Btn.y - 20, 20, WHITE);
 
 		DrawRectangleRec(addressField, WHITE);
 		DrawRectangleLinesEx(addressField, 4, addressColor);
 		DrawText(home->remoteAddress.c_str(), addressField.x + 10, addressField.y + 10, 20, BLACK);
-		DrawText("Remote IP Address\nCtrl+V to paste it here", addressField.x, addressField.y - 50, 20, BLACK);
+		DrawText("Remote IP Address\nCtrl+V to paste it here", addressField.x+1, addressField.y+1 - 50, 20, BLACK);
+		DrawText("Remote IP Address\nCtrl+V to paste it here", addressField.x, addressField.y - 50, 20, WHITE);
 
 
 		DrawText("Press F4 to show background demo", 880, 5, 20, BLACK);
