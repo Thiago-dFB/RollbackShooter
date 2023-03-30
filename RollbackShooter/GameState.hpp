@@ -321,9 +321,10 @@ GameState simulate(GameState state, SecSimFlux* flux, const Config* cfg, InputDa
 						state.p2.pushdown.push(PState::Hitstop);
 						state.p2.hitstopCount = cfg->weakHitstop;
 					}
-					else if (!state.p2.stunned && v2::length(v2::sub(it->pos, state.p2.pos)) < (cfg->playerRadius + cfg->projRadius))
+					else if (!state.p2.stunned && //not stunned
+						(state.p2.pushdown.top() != PState::Dashing || state.p2.dashCount < it->lifetime) && //not dashing, or dashing but dash is "younger"
+						v2::length(v2::sub(it->pos, state.p2.pos)) < (cfg->playerRadius + cfg->projRadius)) //collision happened
 					{
-						//TODO make dash invulnerable to projectiles with less lifetime than it
 						damagePlayer(&(state.p2), flux, &state, cfg, it->pos, 1);
 						regDamage(&state, 2);
 						flux->projs.push_back({ false,it->pos,it->owner });
@@ -343,9 +344,11 @@ GameState simulate(GameState state, SecSimFlux* flux, const Config* cfg, InputDa
 						state.p1.pushdown.push(PState::Hitstop);
 						state.p1.hitstopCount = cfg->weakHitstop;
 					}
-					else if (!state.p1.stunned && v2::length(v2::sub(it->pos, state.p1.pos)) < (cfg->playerRadius + cfg->projRadius))
+					else if (
+						!state.p1.stunned && //not stunned
+						(state.p1.pushdown.top() != PState::Dashing || state.p1.dashCount < it->lifetime) && //not dashing, or dashing but dash is "younger"
+						v2::length(v2::sub(it->pos, state.p1.pos)) < (cfg->playerRadius + cfg->projRadius)) //collision happened
 					{
-						//TODO make dash invulnerable to projectiles with less lifetime than it
 						damagePlayer(&(state.p1), flux, &state, cfg, it->pos, 1);
 						regDamage(&state, 1);
 						flux->projs.push_back({ false,it->pos,it->owner });
@@ -440,12 +443,17 @@ GameState simulate(GameState state, SecSimFlux* flux, const Config* cfg, InputDa
 		//PLAYER 1 ATTACKS
 		if (state.p1.stunned)
 		{
-			//TODO turn alert into a dash that spends all your stamina
-			//break out of stun at the cost of a dash
-			if (input.p1Input.atk == AttackInput::Dash && !state.p1DmgThisFrame && state.p1.stamina >= cfg->dashCost)
+			//alert: break out of stun at the cost all your stamina
+			if (state.p1.pushdown.top() != PState::Hitstop && //can't alert out of hitstop
+				input.p1Input.atk == AttackInput::Dash &&
+				!state.p1DmgThisFrame && //can't alert out of the same frame you were damaged
+				state.p1.stamina >= cfg->dashCost) //need to have enough stamina for a dash
 			{
-				state.p1.vel = v2::scalarMult(pickDashDir(state.p1.dir, input.p1Input.mov), cfg->playerDashSpeed);
-				state.p1.stamina = state.p1.stamina - cfg->dashCost;
+				state.p1.dashCount = 0;
+				state.p1.dashVel = v2::scalarMult(pickDashDir(state.p1.dir, input.p1Input.mov), cfg->playerDashSpeed);
+				state.p1.perfectPos = state.p1.pos;
+				state.p1.pushdown.push(PState::Dashing);
+				state.p1.stamina = 0;
 				state.p1.stunned = false;
 				flux->alerts.push_back({false, state.p1.pos});
 			}
@@ -491,12 +499,17 @@ GameState simulate(GameState state, SecSimFlux* flux, const Config* cfg, InputDa
 		//PLAYER 2 ATTACKS
 		if (state.p2.stunned)
 		{
-			//TODO turn alert into a dash that spends all your stamina
-			//break out of stun at the cost of a dash
-			if (input.p2Input.atk == AttackInput::Dash && !state.p2DmgThisFrame && state.p2.stamina >= cfg->dashCost)
+			//alert: break out of stun at the cost all your stamina
+			if (state.p2.pushdown.top() != PState::Hitstop && //can't alert out of hitstop
+				input.p2Input.atk == AttackInput::Dash &&
+				!state.p2DmgThisFrame && //can't alert out of the same frame you were damaged
+				state.p2.stamina >= cfg->dashCost) //need to have enough stamina for a dash
 			{
-				state.p2.vel = v2::scalarMult(pickDashDir(state.p2.dir, input.p2Input.mov), cfg->playerDashSpeed);
-				state.p2.stamina = state.p2.stamina - cfg->dashCost;
+				state.p2.dashCount = 0;
+				state.p2.dashVel = v2::scalarMult(pickDashDir(state.p2.dir, input.p2Input.mov), cfg->playerDashSpeed);
+				state.p2.perfectPos = state.p2.pos;
+				state.p2.pushdown.push(PState::Dashing);
+				state.p2.stamina = 0;
 				state.p2.stunned = false;
 				flux->alerts.push_back({ false, state.p2.pos });
 			}
