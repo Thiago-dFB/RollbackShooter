@@ -12,9 +12,12 @@ uniform vec4 colDiffuse;
 // Output fragment color
 out vec4 finalColor;
 
+// Custom uniforms
+
 void main()
 {
     vec4 texelColor = texture(texture0, fragTexCoord);
-    if (texelColor.a == 0.0) discard;
+    vec2 v = (fragTexCoord * 2) - vec2(1.0);
+    if (sqrt(v.x*v.x + v.y*v.y) > 1.0) discard;
     finalColor = texelColor * fragColor * colDiffuse;
 }

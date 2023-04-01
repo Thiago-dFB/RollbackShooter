@@ -17,11 +17,16 @@ struct Sprites
 {
 	Texture2D logo;
 	Texture2D chars;
-	Texture2D charsFlipped;
 	Texture2D projs;
 	Texture2D hearts;
 	Texture2D effects;
-	Shader billShader;
+	struct {
+		Texture2D full;
+		Texture2D dither;
+		Shader shader;
+		int maskLoc;
+	} mask;
+	Shader circle;
 	struct {
 		Model plane;
 		Texture2D texture;
@@ -97,24 +102,28 @@ Sprites LoadSprites()
 {
 	Sprites sprs;
 	sprs.logo = LoadTexture("sprite/logo.png");
-	Image atlas = LoadImage("sprite/chars.png");
-	sprs.chars = LoadTextureFromImage(atlas);
-	ImageFlipHorizontal(&atlas);
-	sprs.charsFlipped = LoadTextureFromImage(atlas);
-	UnloadImage(atlas);
+	sprs.chars = LoadTexture("sprite/chars.png");
 	sprs.projs = LoadTexture("sprite/projs.png");
 	sprs.hearts = LoadTexture("sprite/hearts.png");
 	sprs.effects = LoadTexture("sprite/effects.png");
-	sprs.billShader = LoadShader(0, "shader/bill.fs");
 
+	Image mask = GenImageChecked(sprs.chars.width, sprs.chars.height, 1, 1, WHITE, Color{ 0,0,0,0 });
+	sprs.mask.dither = LoadTextureFromImage(mask);
+	ImageClearBackground(&mask, WHITE);
+	sprs.mask.full = LoadTextureFromImage(mask);
+	UnloadImage(mask);
+	sprs.mask.shader = LoadShader(0, "shader/mask.fs");
+	sprs.mask.maskLoc = GetShaderLocation(sprs.mask.shader, "mask");
+
+	sprs.circle = LoadShader(0, "shader/circle.fs");
 	sprs.radius.texture = LoadTexture("sprite/radius.png");
 	sprs.radius.plane = LoadModelFromMesh(GenMeshPlane(1.0f, 1.0f, 1, 1));
 	sprs.radius.plane.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = sprs.radius.texture;
-	sprs.radius.plane.materials[0].shader = sprs.billShader;
+	sprs.radius.plane.materials[0].shader = sprs.circle;
 	sprs.arena.texture = LoadTexture("sprite/arena.png");
 	sprs.arena.plane = LoadModelFromMesh(GenMeshPlane(1.0f, 1.0f, 1, 1));
 	sprs.arena.plane.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = sprs.arena.texture;
-	sprs.arena.plane.materials[0].shader = sprs.billShader;
+	sprs.arena.plane.materials[0].shader = sprs.circle;
 
 	sprs.path.charge.shader = LoadShader(0,"shader/path.fs");
 	sprs.path.charge.scroll = GetShaderLocation(sprs.path.charge.shader, "scroll");
@@ -149,15 +158,20 @@ void UnloadSprites(Sprites sprs)
 {
 	UnloadTexture(sprs.logo);
 	UnloadTexture(sprs.chars);
-	UnloadTexture(sprs.charsFlipped);
 	UnloadTexture(sprs.projs);
 	UnloadTexture(sprs.hearts);
 	UnloadTexture(sprs.effects);
-	UnloadShader(sprs.billShader);
+
+	UnloadTexture(sprs.mask.dither);
+	UnloadTexture(sprs.mask.full);
+	UnloadShader(sprs.mask.shader);
+
 	UnloadTexture(sprs.radius.texture);
 	UnloadModel(sprs.radius.plane);
 	UnloadTexture(sprs.arena.texture);
 	UnloadModel(sprs.arena.plane);
+	UnloadShader(sprs.circle);
+
 	UnloadShader(sprs.path.charge.shader);
 	UnloadTexture(sprs.path.charge.texture);
 	UnloadModel(sprs.path.charge.path);
@@ -165,6 +179,7 @@ void UnloadSprites(Sprites sprs)
 	UnloadModel(sprs.path.hitscanRed.path);
 	UnloadTexture(sprs.path.hitscanBlue.texture);
 	UnloadModel(sprs.path.hitscanBlue.path);
+
 	UnloadModel(sprs.combo.model);
 	UnloadShader(sprs.combo.shader);
 	UnloadModel(sprs.combo.invert.model);
@@ -172,12 +187,12 @@ void UnloadSprites(Sprites sprs)
 }
 
 //state: 0=default, 1=dashing, 2=stunned
-Rectangle CharAtlas(playerid player, bool isPov, bool flipped, int state)
+Rectangle CharAtlas(playerid player, bool your, bool flipped, int state)
 {
-	int x = state * 32;
+	int x = state * 64;
 	int y = (player - 1) * 32;
-	if (isPov) y = y + 64;
-	if (flipped) x = 64 - x;
+	if (your) y = y + 64;
+	if (flipped) x = x + 32;
 	return Rectangle{
 		static_cast<float>(x),
 		static_cast<float>(y),
@@ -254,7 +269,6 @@ void drawBars(const Player* player, const Config* cfg)
 void gameScene(POV pov, const GameState* state, const SecSimParticles* particles, const Config* cfg, const Camera3D* cam, const Sprites* sprs)
 {
 	BeginMode3D(*cam);
-	BeginShaderMode(sprs->billShader);
 	{
 		//DRAW ARENA
 		{
@@ -266,7 +280,7 @@ void gameScene(POV pov, const GameState* state, const SecSimParticles* particles
 			DrawGrid(10, static_cast<float>(cfg->arenaRadius) / 10.0f);
 		}
 
-		//DRAW PLAYERS (and their alt shot direction if they're charging)
+		//DRAW PLAYERS
 		{
 			Vec2 camAngle{
 			num_det{ cam->target.x - cam->position.x },
@@ -304,23 +318,42 @@ void gameScene(POV pov, const GameState* state, const SecSimParticles* particles
 			else p2Mirror = (!pov == Player2) && v2::dot(camRight, state->p2.dir) < num_det{ 0 };
 
 			//player sprites
+			BeginShaderMode(sprs->mask.shader);
+			if (pov == Player1)
+				SetShaderValueTexture(sprs->mask.shader, sprs->mask.maskLoc, sprs->mask.dither);
+			else
+				SetShaderValueTexture(sprs->mask.shader, sprs->mask.maskLoc, sprs->mask.full);
 			DrawBillboardPro(*cam,
-				(p1Mirror ? sprs->charsFlipped : sprs->chars),
+				(sprs->chars),
 				CharAtlas(1, (pov == Player1), p1Mirror, p1State),
 				fromDetVec2WithShake(state->p1.pos, camRight, fromDetNum(cfg->playerRadius) * 1.5, p1Shake),
 				Vector3{ 0,1,0 },
 				Vector2{ fromDetNum(cfg->playerRadius) * 3, fromDetNum(cfg->playerRadius) * 3 },
 				Vector2{ 0.0f, 0.0f },
 				0.0f, WHITE);
+			EndShaderMode();
+
+			BeginShaderMode(sprs->mask.shader);
+			if (pov == Player2)
+				SetShaderValueTexture(sprs->mask.shader, sprs->mask.maskLoc, sprs->mask.dither);
+			else
+				SetShaderValueTexture(sprs->mask.shader, sprs->mask.maskLoc, sprs->mask.full);
 			DrawBillboardPro(*cam,
-				(p2Mirror ? sprs->charsFlipped : sprs->chars),
+				(sprs->chars),
 				CharAtlas(2, (pov == Player2), p2Mirror, p2State),
 				fromDetVec2WithShake(state->p2.pos, camRight, fromDetNum(cfg->playerRadius) * 1.5, p2Shake),
 				Vector3{ 0,1,0 },
 				Vector2{ fromDetNum(cfg->playerRadius) * 3, fromDetNum(cfg->playerRadius) * 3 },
 				Vector2{ 0.0f, 0.0f },
 				0.0f, WHITE);
+			EndShaderMode();
+		}
 
+		BeginShaderMode(sprs->mask.shader);
+		SetShaderValueTexture(sprs->mask.shader, sprs->mask.maskLoc, sprs->mask.full);
+
+		//DRAW PLAYER RADIUS AND RAIL PATH
+		{
 			//player radius
 			DrawModel(
 				sprs->radius.plane,
@@ -623,8 +656,9 @@ void gameScene(POV pov, const GameState* state, const SecSimParticles* particles
 				fromDetNum(cfg->comboRadius),
 				WHITE);
 		}
+
+		EndShaderMode();
 	}
-	EndShaderMode();
 	EndMode3D();
 }
 

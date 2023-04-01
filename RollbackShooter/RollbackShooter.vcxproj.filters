@@ -67,7 +67,7 @@
     <None Include="shader\bg.fs">
       <Filter>Resource Files\shader</Filter>
     </None>
-    <None Include="shader\bill.fs">
+    <None Include="shader\mask.fs">
       <Filter>Resource Files\shader</Filter>
     </None>
     <None Include="shader\path.fs">
@@ -80,6 +80,9 @@
       <Filter>Resource Files\shader</Filter>
     </None>
     <None Include="shader\combo_invert.vs">
+      <Filter>Resource Files\shader</Filter>
+    </None>
+    <None Include="circle.fs">
       <Filter>Resource Files\shader</Filter>
     </None>
   </ItemGroup>

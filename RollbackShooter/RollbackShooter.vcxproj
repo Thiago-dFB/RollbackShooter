@@ -279,6 +279,9 @@
     <ClInclude Include="SecondarySim.hpp" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="circle.fs">
+      <DeploymentContent>true</DeploymentContent>
+    </None>
     <None Include="RBST_config.toml">
       <DeploymentContent>true</DeploymentContent>
     </None>
@@ -291,7 +294,7 @@
     <None Include="shader\bg.fs">
       <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="shader\bill.fs">
+    <None Include="shader\mask.fs">
       <DeploymentContent>true</DeploymentContent>
     </None>
     <None Include="shader\combo.fs">
@@ -323,7 +326,9 @@
     <Image Include="sprite\hearts.png">
       <DeploymentContent>true</DeploymentContent>
     </Image>
-    <Image Include="sprite\logo.png" />
+    <Image Include="sprite\logo.png">
+      <DeploymentContent>true</DeploymentContent>
+    </Image>
     <Image Include="sprite\projs.png">
       <DeploymentContent>true</DeploymentContent>
     </Image>
