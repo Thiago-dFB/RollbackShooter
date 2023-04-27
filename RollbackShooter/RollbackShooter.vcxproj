@@ -309,6 +309,9 @@
     <None Include="shader\path.fs">
       <DeploymentContent>true</DeploymentContent>
     </None>
+    <None Include="sprite\atlas.toml">
+      <DeploymentContent>true</DeploymentContent>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Image Include="sprite\arena.png">

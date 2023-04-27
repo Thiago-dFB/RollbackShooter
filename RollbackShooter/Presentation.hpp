@@ -3,6 +3,8 @@
 
 //Raylib
 #include <raylib.h>
+//TOML++
+#include <toml++/toml.h>
 //-----
 #include "Math.hpp"
 #include "SecondarySim.hpp"
@@ -16,25 +18,53 @@ const int centerY = screenHeight / 2;
 struct Sprites
 {
 	Texture2D logo;
-	Texture2D chars;
-	Texture2D projs;
-	Texture2D hearts;
-	Texture2D effects;
+
+	struct {
+		Texture2D atlas;
+		Vector2 size;
+	} chars;
+
+	struct {
+		Texture2D atlas;
+		Rectangle red;
+		Rectangle blue;
+		Rectangle target;
+	} projs;
+
+	struct {
+		Texture2D atlas;
+		Rectangle heartRed;
+		Rectangle heartBlue;
+		Rectangle roundNo;
+		Rectangle roundYes;
+	} hearts;
+
+	struct {
+		Texture2D atlas;
+		Rectangle graze;
+		Rectangle alert;
+	} effects;
+
 	struct {
 		Texture2D full;
 		Texture2D dither;
 		Shader shader;
 		int maskLoc;
 	} mask;
-	Shader circle;
-	struct {
-		Model plane;
-		Texture2D texture;
-	} radius;
-	struct {
-		Model plane;
-		Texture2D texture;
-	} arena;
+
+	struct
+	{
+		Shader shader;
+		struct {
+			Model plane;
+			Texture2D texture;
+		} radius;
+		struct {
+			Model plane;
+			Texture2D texture;
+		} arena;
+	} circle;
+
 	struct {
 		struct {
 			Model path;
@@ -51,6 +81,7 @@ struct Sprites
 			Texture2D texture;
 		} hitscanBlue;
 	} path;
+
 	struct {
 		Model model;
 		Shader shader;
@@ -100,14 +131,40 @@ static Mesh GenMeshPath()
 
 Sprites LoadSprites()
 {
+	auto atlasFile = toml::parse_file("sprite/atlas.toml");
+	
 	Sprites sprs;
 	sprs.logo = LoadTexture("sprite/logo.png");
-	sprs.chars = LoadTexture("sprite/chars.png");
-	sprs.projs = LoadTexture("sprite/projs.png");
-	sprs.hearts = LoadTexture("sprite/hearts.png");
-	sprs.effects = LoadTexture("sprite/effects.png");
 
-	Image mask = GenImageChecked(sprs.chars.width, sprs.chars.height, 1, 1, WHITE, Color{ 0,0,0,0 });
+	sprs.chars.atlas = LoadTexture("sprite/chars.png");
+	auto charsSize = atlasFile["chars"]["size"];
+	sprs.chars.size = Vector2{ charsSize[0].value_or(0.0f), charsSize[1].value_or(0.0f) };
+
+	sprs.projs.atlas = LoadTexture("sprite/projs.png");
+	auto projRed = atlasFile["projs"]["red"];
+	sprs.projs.red = Rectangle{ projRed[0].value_or(0.0f), projRed[1].value_or(0.0f), projRed[2].value_or(0.0f), projRed[3].value_or(0.0f) };
+	auto projBlue = atlasFile["projs"]["blue"];
+	sprs.projs.blue = Rectangle{ projBlue[0].value_or(0.0f), projBlue[1].value_or(0.0f), projBlue[2].value_or(0.0f), projBlue[3].value_or(0.0f) };
+	auto target = atlasFile["projs"]["target"];
+	sprs.projs.target = Rectangle{ target[0].value_or(0.0f), target[1].value_or(0.0f), target[2].value_or(0.0f), target[3].value_or(0.0f) };
+
+	sprs.hearts.atlas = LoadTexture("sprite/hearts.png");
+	auto heartRed = atlasFile["hearts"]["heartRed"];
+	sprs.hearts.heartRed = Rectangle{ heartRed[0].value_or(0.0f), heartRed[1].value_or(0.0f), heartRed[2].value_or(0.0f), heartRed[3].value_or(0.0f) };
+	auto heartBlue = atlasFile["hearts"]["heartBlue"];
+	sprs.hearts.heartBlue = Rectangle{ heartBlue[0].value_or(0.0f), heartBlue[1].value_or(0.0f), heartBlue[2].value_or(0.0f), heartBlue[3].value_or(0.0f) };
+	auto roundNo = atlasFile["hearts"]["roundNo"];
+	sprs.hearts.roundNo = Rectangle{ roundNo[0].value_or(0.0f), roundNo[1].value_or(0.0f), roundNo[2].value_or(0.0f), roundNo[3].value_or(0.0f) };
+	auto roundYes = atlasFile["hearts"]["roundYes"];
+	sprs.hearts.roundYes = Rectangle{ roundYes[0].value_or(0.0f), roundYes[1].value_or(0.0f), roundYes[2].value_or(0.0f), roundYes[3].value_or(0.0f) };
+
+	sprs.effects.atlas = LoadTexture("sprite/effects.png");
+	auto graze = atlasFile["effects"]["graze"];
+	sprs.effects.graze = Rectangle{ graze[0].value_or(0.0f), graze[1].value_or(0.0f), graze[2].value_or(0.0f), graze[3].value_or(0.0f) };
+	auto alert = atlasFile["effects"]["alert"];
+	sprs.effects.alert = Rectangle{ alert[0].value_or(0.0f), alert[1].value_or(0.0f), alert[2].value_or(0.0f), alert[3].value_or(0.0f) };
+
+	Image mask = GenImageChecked(sprs.chars.atlas.width, sprs.chars.atlas.height, 1, 1, WHITE, Color{ 0,0,0,0 });
 	sprs.mask.dither = LoadTextureFromImage(mask);
 	ImageClearBackground(&mask, WHITE);
 	sprs.mask.full = LoadTextureFromImage(mask);
@@ -115,15 +172,15 @@ Sprites LoadSprites()
 	sprs.mask.shader = LoadShader(0, "shader/mask.fs");
 	sprs.mask.maskLoc = GetShaderLocation(sprs.mask.shader, "mask");
 
-	sprs.circle = LoadShader(0, "shader/circle.fs");
-	sprs.radius.texture = LoadTexture("sprite/radius.png");
-	sprs.radius.plane = LoadModelFromMesh(GenMeshPlane(1.0f, 1.0f, 1, 1));
-	sprs.radius.plane.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = sprs.radius.texture;
-	sprs.radius.plane.materials[0].shader = sprs.circle;
-	sprs.arena.texture = LoadTexture("sprite/arena.png");
-	sprs.arena.plane = LoadModelFromMesh(GenMeshPlane(1.0f, 1.0f, 1, 1));
-	sprs.arena.plane.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = sprs.arena.texture;
-	sprs.arena.plane.materials[0].shader = sprs.circle;
+	sprs.circle.shader = LoadShader(0, "shader/circle.fs");
+	sprs.circle.radius.texture = LoadTexture("sprite/radius.png");
+	sprs.circle.radius.plane = LoadModelFromMesh(GenMeshPlane(1.0f, 1.0f, 1, 1));
+	sprs.circle.radius.plane.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = sprs.circle.radius.texture;
+	sprs.circle.radius.plane.materials[0].shader = sprs.circle.shader;
+	sprs.circle.arena.texture = LoadTexture("sprite/arena.png");
+	sprs.circle.arena.plane = LoadModelFromMesh(GenMeshPlane(1.0f, 1.0f, 1, 1));
+	sprs.circle.arena.plane.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = sprs.circle.arena.texture;
+	sprs.circle.arena.plane.materials[0].shader = sprs.circle.shader;
 
 	sprs.path.charge.shader = LoadShader(0,"shader/path.fs");
 	sprs.path.charge.scroll = GetShaderLocation(sprs.path.charge.shader, "scroll");
@@ -157,20 +214,14 @@ Sprites LoadSprites()
 void UnloadSprites(Sprites sprs)
 {
 	UnloadTexture(sprs.logo);
-	UnloadTexture(sprs.chars);
-	UnloadTexture(sprs.projs);
-	UnloadTexture(sprs.hearts);
-	UnloadTexture(sprs.effects);
+	UnloadTexture(sprs.chars.atlas);
+	UnloadTexture(sprs.projs.atlas);
+	UnloadTexture(sprs.hearts.atlas);
+	UnloadTexture(sprs.effects.atlas);
 
 	UnloadTexture(sprs.mask.dither);
 	UnloadTexture(sprs.mask.full);
 	UnloadShader(sprs.mask.shader);
-
-	UnloadTexture(sprs.radius.texture);
-	UnloadModel(sprs.radius.plane);
-	UnloadTexture(sprs.arena.texture);
-	UnloadModel(sprs.arena.plane);
-	UnloadShader(sprs.circle);
 
 	UnloadShader(sprs.path.charge.shader);
 	UnloadTexture(sprs.path.charge.texture);
@@ -180,6 +231,12 @@ void UnloadSprites(Sprites sprs)
 	UnloadTexture(sprs.path.hitscanBlue.texture);
 	UnloadModel(sprs.path.hitscanBlue.path);
 
+	UnloadShader(sprs.circle.shader);
+	UnloadTexture(sprs.circle.radius.texture);
+	UnloadModel(sprs.circle.radius.plane);
+	UnloadTexture(sprs.circle.arena.texture);
+	UnloadModel(sprs.circle.arena.plane);
+
 	UnloadModel(sprs.combo.model);
 	UnloadShader(sprs.combo.shader);
 	UnloadModel(sprs.combo.invert.model);
@@ -187,16 +244,18 @@ void UnloadSprites(Sprites sprs)
 }
 
 //state: 0=default, 1=dashing, 2=stunned
-Rectangle CharAtlas(playerid player, bool your, bool flipped, int state)
+Rectangle CharAtlas(const Sprites* sprs, playerid player, bool your, bool flipped, int state)
 {
-	int x = state * 64;
-	int y = (player - 1) * 32;
-	if (your) y = y + 64;
-	if (flipped) x = x + 32;
+	int x = state * 2 * sprs->chars.size.x;
+	int y = (player - 1) * sprs->chars.size.y;
+	if (your) y = y + 2 * sprs->chars.size.y;
+	if (flipped) x = x + sprs->chars.size.x;
 	return Rectangle{
 		static_cast<float>(x),
 		static_cast<float>(y),
-		32,32};
+		sprs->chars.size.x,
+		sprs->chars.size.y
+	};
 }
 
 enum POV
@@ -273,7 +332,7 @@ void gameScene(POV pov, const GameState* state, const SecSimParticles* particles
 		//DRAW ARENA
 		{
 			DrawModel(
-				sprs->arena.plane,
+				sprs->circle.arena.plane,
 				Vector3{ 0.0f, -0.01f, 0.0f },
 				fromDetNum(cfg->arenaRadius) * 2,
 				WHITE);
@@ -324,8 +383,8 @@ void gameScene(POV pov, const GameState* state, const SecSimParticles* particles
 			else
 				SetShaderValueTexture(sprs->mask.shader, sprs->mask.maskLoc, sprs->mask.full);
 			DrawBillboardPro(*cam,
-				(sprs->chars),
-				CharAtlas(1, (pov == Player1), p1Mirror, p1State),
+				(sprs->chars.atlas),
+				CharAtlas(sprs, 1, (pov == Player1), p1Mirror, p1State),
 				fromDetVec2WithShake(state->p1.pos, camRight, fromDetNum(cfg->playerRadius) * 1.5, p1Shake),
 				Vector3{ 0,1,0 },
 				Vector2{ fromDetNum(cfg->playerRadius) * 3, fromDetNum(cfg->playerRadius) * 3 },
@@ -339,8 +398,8 @@ void gameScene(POV pov, const GameState* state, const SecSimParticles* particles
 			else
 				SetShaderValueTexture(sprs->mask.shader, sprs->mask.maskLoc, sprs->mask.full);
 			DrawBillboardPro(*cam,
-				(sprs->chars),
-				CharAtlas(2, (pov == Player2), p2Mirror, p2State),
+				(sprs->chars.atlas),
+				CharAtlas(sprs, 2, (pov == Player2), p2Mirror, p2State),
 				fromDetVec2WithShake(state->p2.pos, camRight, fromDetNum(cfg->playerRadius) * 1.5, p2Shake),
 				Vector3{ 0,1,0 },
 				Vector2{ fromDetNum(cfg->playerRadius) * 3, fromDetNum(cfg->playerRadius) * 3 },
@@ -356,12 +415,12 @@ void gameScene(POV pov, const GameState* state, const SecSimParticles* particles
 		{
 			//player radius
 			DrawModel(
-				sprs->radius.plane,
+				sprs->circle.radius.plane,
 				fromDetVec2(state->p1.pos, .01f),
 				fromDetNum(cfg->playerRadius) * 2,
 				WHITE);
 			DrawModel(
-				sprs->radius.plane,
+				sprs->circle.radius.plane,
 				fromDetVec2(state->p2.pos, .01f),
 				fromDetNum(cfg->playerRadius) * 2,
 				WHITE);
@@ -443,8 +502,8 @@ void gameScene(POV pov, const GameState* state, const SecSimParticles* particles
 				{
 				case 1:
 					DrawBillboardPro(*cam,
-						sprs->projs,
-						Rectangle{ 0,0,32,32 }, //source rect
+						sprs->projs.atlas,
+						sprs->projs.red, //source rect
 						fromDetVec2(it->pos, fromDetNum(cfg->playerRadius) * 2), //world pos
 						Vector3{ 0.0f,1.0f,0.0f }, //up vector
 						Vector2{ fromDetNum(cfg->projRadius) * 4, fromDetNum(cfg->projRadius) * 4 }, //size (proj size is defined by circle with half dimensions of sprite)
@@ -454,8 +513,8 @@ void gameScene(POV pov, const GameState* state, const SecSimParticles* particles
 					break;
 				case 2:
 					DrawBillboardPro(*cam,
-						sprs->projs,
-						Rectangle{ 32,0,32,32 }, //source rect
+						sprs->projs.atlas,
+						sprs->projs.blue, //source rect
 						fromDetVec2(it->pos, fromDetNum(cfg->playerRadius) * 2), //world pos
 						Vector3{ 0.0f,1.0f,0.0f }, //up vector
 						Vector2{ fromDetNum(cfg->projRadius) * 4, fromDetNum(cfg->projRadius) * 4 }, //size (proj size is defined by circle with half dimensions of sprite)
@@ -468,8 +527,8 @@ void gameScene(POV pov, const GameState* state, const SecSimParticles* particles
 				if (withinReach)
 				{
 					DrawBillboardPro(*cam,
-						sprs->projs,
-						Rectangle{ 64,0,32,32 }, //source rect
+						sprs->projs.atlas,
+						sprs->projs.target, //source rect
 						fromDetVec2(futurePos, fromDetNum(cfg->playerRadius) * 2), //world pos
 						Vector3{ 0.0f,1.0f,0.0f }, //up vector
 						Vector2{ fromDetNum(cfg->projRadius) * 2, fromDetNum(cfg->projRadius) * 2 }, //size
@@ -499,7 +558,7 @@ void gameScene(POV pov, const GameState* state, const SecSimParticles* particles
 				}
 				//draw ground radius
 				DrawModel(
-					sprs->radius.plane,
+					sprs->circle.radius.plane,
 					fromDetVec2(it->pos, .01f),
 					fromDetNum(cfg->projRadius) * 2,
 					WHITE);
@@ -516,8 +575,8 @@ void gameScene(POV pov, const GameState* state, const SecSimParticles* particles
 			{
 			case 1:
 				DrawBillboardPro(*cam,
-					sprs->projs,
-					Rectangle{ 0,0,32,32 }, //source rect
+					sprs->projs.atlas,
+					sprs->projs.red, //source rect
 					fromDetVec2(it->pos, fromDetNum(cfg->playerRadius) * 2), //world pos
 					Vector3{ 0.0f,1.0f,0.0f }, //up vector
 					Vector2{ size, size }, //size (proj size is defined by circle with half dimensions of sprite)
@@ -527,8 +586,8 @@ void gameScene(POV pov, const GameState* state, const SecSimParticles* particles
 				break;
 			case 2:
 				DrawBillboardPro(*cam,
-					sprs->projs,
-					Rectangle{ 32,0,32,32 }, //source rect
+					sprs->projs.atlas,
+					sprs->projs.blue, //source rect
 					fromDetVec2(it->pos, fromDetNum(cfg->playerRadius) * 2), //world pos
 					Vector3{ 0.0f,1.0f,0.0f }, //up vector
 					Vector2{ size, size }, //size (proj size is defined by circle with half dimensions of sprite)
@@ -554,8 +613,8 @@ void gameScene(POV pov, const GameState* state, const SecSimParticles* particles
 					fromDetNum(it->pos.y) + subIt->y * leap
 				};
 				DrawBillboardPro(*cam,
-					sprs->effects,
-					Rectangle{ 0,0,8,8 }, //source rect
+					sprs->effects.atlas,
+					sprs->effects.graze, //source rect
 					pos, //world pos
 					Vector3{ 0.0f,1.0f,0.0f }, //up vector
 					Vector2{ size, size }, //size (proj size is defined by circle with half dimensions of sprite)
@@ -580,8 +639,8 @@ void gameScene(POV pov, const GameState* state, const SecSimParticles* particles
 					fromDetNum(it->pos.y) + subIt->y * leap
 				};
 				DrawBillboardPro(*cam,
-					sprs->effects,
-					Rectangle{ 8,0,8,8 }, //source rect
+					sprs->effects.atlas,
+					sprs->effects.alert, //source rect
 					pos, //world pos
 					Vector3{ 0.0f,1.0f,0.0f }, //up vector
 					Vector2{ size, size }, //size (proj size is defined by circle with half dimensions of sprite)
@@ -607,8 +666,8 @@ void gameScene(POV pov, const GameState* state, const SecSimParticles* particles
 					Vector3{ 1,1,.15 },
 					fade);
 				DrawBillboardPro(*cam,
-					sprs->projs,
-					Rectangle{ 0,0,32,32 }, //source rect
+					sprs->projs.atlas,
+					sprs->projs.red, //source rect
 					fromDetVec2(it->pos, fromDetNum(cfg->playerRadius) * 2), //world pos
 					Vector3{ 0.0f,1.0f,0.0f }, //up vector
 					Vector2{ size, size }, //size (proj size is defined by circle with half dimensions of sprite)
@@ -624,8 +683,8 @@ void gameScene(POV pov, const GameState* state, const SecSimParticles* particles
 					Vector3{ 1,1,.15 },
 					fade);
 				DrawBillboardPro(*cam,
-					sprs->projs,
-					Rectangle{ 32,0,32,32 }, //source rect
+					sprs->projs.atlas,
+					sprs->projs.blue, //source rect
 					fromDetVec2(it->pos, fromDetNum(cfg->playerRadius) * 2), //world pos
 					Vector3{ 0.0f,1.0f,0.0f }, //up vector
 					Vector2{ size, size }, //size (proj size is defined by circle with half dimensions of sprite)
@@ -678,8 +737,8 @@ double present(POV pov, const GameState* state, const SecSimParticles* particles
 	float size = 6;
 	for (int i = 0; i < state->health1; i++)
 	{
-		DrawTexturePro(sprs->hearts,
-			Rectangle{ 0,0,8,8 },
+		DrawTexturePro(sprs->hearts.atlas,
+			sprs->hearts.heartRed,
 			Rectangle{
 				5 + 8 * size * i,
 				5,
@@ -690,8 +749,8 @@ double present(POV pov, const GameState* state, const SecSimParticles* particles
 	}
 	for (int i = 0; i < state->health2; i++)
 	{
-		DrawTexturePro(sprs->hearts,
-			Rectangle{ 8,0,8,8 },
+		DrawTexturePro(sprs->hearts.atlas,
+			sprs->hearts.heartBlue,
 			Rectangle{
 				screenWidth - 5 - 8 * size * (i+1),
 				5,
@@ -702,8 +761,8 @@ double present(POV pov, const GameState* state, const SecSimParticles* particles
 	}
 	for (int i = 0; i < cfg->roundsToWin; i++)
 	{
-		DrawTexturePro(sprs->hearts,
-			(i + 1 <= state->rounds1 ? Rectangle{ 24,0,8,8 } : Rectangle{ 16,0,8,8 }),
+		DrawTexturePro(sprs->hearts.atlas,
+			(i + 1 <= state->rounds1 ? sprs->hearts.roundYes : sprs->hearts.roundNo),
 			Rectangle{
 				5 + 8 * size * i,
 				5 + 8 * size,
@@ -711,8 +770,8 @@ double present(POV pov, const GameState* state, const SecSimParticles* particles
 				8 * size
 			},
 			Vector2{ 0,0 }, 0.0f, WHITE);
-		DrawTexturePro(sprs->hearts,
-			(i + 1 <= state->rounds2 ? Rectangle{ 24,0,8,8 } : Rectangle{ 16,0,8,8 }),
+		DrawTexturePro(sprs->hearts.atlas,
+			(i + 1 <= state->rounds2 ? sprs->hearts.roundYes : sprs->hearts.roundNo),
 			Rectangle{
 				screenWidth - 5 - 8 * size * (i + 1),
 				5 + 8 * size,

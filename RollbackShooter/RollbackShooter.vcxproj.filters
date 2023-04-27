@@ -85,6 +85,9 @@
     <None Include="circle.fs">
       <Filter>Resource Files\shader</Filter>
     </None>
+    <None Include="sprite\atlas.toml">
+      <Filter>Resource Files\sprite</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Image Include="sprite\projs.png">
