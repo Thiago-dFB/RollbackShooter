@@ -51,8 +51,8 @@ OS: Windows 8/10/11
 - As part of the argument that rollback networking had real use in online action games besides fighting games, GGPO, a library planned around being applied to conventional 2D fighting games, was applied as-is in a third-person shooter.
 - The game was designed with a concise ruleset, focused on showing rollback's biggest strengths over other methods that can result in:
     - "lying" about your or your opponent's real position, such as client-server and dead reckoning;
-    - negatively affecting your capability to react in time, such as lockstep and delay-based (lockstep with input delay).
-- As a side effect of determinism, a replay feature was as simple as storing input data as soon as each peer confirmed their inputs for each frame.
+    - negatively affecting your capability to react on time, such as lockstep and delay-based (lockstep with input delay).
+- As a side effect of determinism, a replay feature was as simple as storing input data as soon as each peer confirms their inputs for each frame.
 - Tying into the application of rollback into more advanced games, particle corrections for sharp game state changes upon rollback were implemented, albeit through crude heuristics, such as spatial and temporal proximity.
 - Due to unconclusive research on how cross-platform determinism can be achieved even with floating point at the time of writing the thesis, a fixed point math library was used instead, gravely diminishing maximum decimal values that could be used.
 
@@ -74,13 +74,4 @@ GGPOController.hpp contains public code excerpts that are properly credited with
 
 ### Project configuration
 
-The project is far from properly set up for open source, but will compile just fine with the following:
-
-- Because of GGPO's usage as-is, it requires Visual Studio 2019 to build GGPO and then RBST itself
-- Before opening RBST's solution, in "RollbackShooter/RollbackShooter.vcxproj", replace every occurrance of "C:/DEV/.libs" with the absolute path of a folder containing the above libraries
-- Running the compiled game from Visual Studio will have no path issues, but running the executable directly will require the following files and folders to be copied to its location
-    - the "sprite" and "shader" folders
-    - the replay file "demo_match_2023-3-29_22-38-32.rbst"
-    - the configuration files "RBST_config.toml", "RBST_controls.toml" and "RBST_home.toml"
-- In case the configuration compiled is DebugDLL or ReleaseDLL, which link to raylib's dynamic library instead of the static, raylib.dll will have to be copied from the library's files to the executable's location
-- Just in case, a strange bug in a friend's computer which I wasn't able to replicate caused the statically linked version to not properly display one of the shaders, causing the screen to be filled with white spheres. This did not happen in the dynamically linked version.
+The project as it was delivered was far from properly set up for other people to compile. I have since reorganized it with CMake, [here](https://github.com/Thiago-dFB/RBST-mk1).
